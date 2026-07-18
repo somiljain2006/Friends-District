@@ -16,7 +16,6 @@ struct ProfileView: View {
     @AppStorage("hasCompletedProfile") private var hasCompletedProfile = false
     @AppStorage("profileName") private var storedName = ""
     @AppStorage("profileUsername") private var storedUsername = ""
-    @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profileEmail") private var storedEmail = ""
     @AppStorage("profileBirthday") private var storedBirthday = ""
     @AppStorage("profileImageData") private var storedImageData: Data = Data()
