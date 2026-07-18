@@ -268,9 +268,12 @@ struct ContentView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
                         ForEach(spotlightItems) { item in
-                            SpotlightCard(item: item)
-                                .containerRelativeFrame(.horizontal, count: 1, span: 1, spacing: 16)
-                                .id(item.id)
+                            NavigationLink(destination: EventDetailView(item: item)) {
+                                SpotlightCard(item: item)
+                                    .containerRelativeFrame(.horizontal, count: 1, span: 1, spacing: 16)
+                            }
+                            .buttonStyle(.plain)
+                            .id(item.id)
                         }
                     }
                     .scrollTargetLayout()
@@ -308,7 +311,10 @@ struct ContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(items) { item in
-                        SectionCard(item: item)
+                        NavigationLink(destination: EventDetailView(item: item)) {
+                            SectionCard(item: item)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 18)
