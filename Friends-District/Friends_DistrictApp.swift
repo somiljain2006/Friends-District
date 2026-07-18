@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct Friends_DistrictApp: App {
+    @AppStorage("hasCompletedProfile") private var hasCompletedProfile = false
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if hasCompletedProfile {
+                ContentView()
+            } else {
+                ProfileSetupView()
+            }
         }
     }
 }

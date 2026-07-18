@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
-    
+    @State private var showGroups = false
     @State private var isAddressExpanded = false
     @State private var currentSpotlightID: UUID?
     @State private var showProfile = false
@@ -68,6 +68,9 @@ struct ContentView: View {
             }
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView()
+            }
+            .navigationDestination(isPresented: $showGroups) {
+                GroupsView()
             }
         }
         .onAppear {
@@ -139,7 +142,12 @@ struct ContentView: View {
             Spacer()
             
             HStack(spacing: 14) {
-                ImageCircleButton(imageName: "persons")
+                Button {
+                    showGroups = true
+                } label: {
+                    ImageCircleButton(imageName: "persons")
+                }
+                .buttonStyle(.plain)
                 CircleIconButton(systemName: "bookmark")
                 
                 Button {
