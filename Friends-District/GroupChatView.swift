@@ -225,6 +225,7 @@ struct GroupChatView: View {
     @StateObject private var viewModel = GroupChatViewModel()
     @State private var messageText = ""
     @State private var showGroupInfo = false
+    @State private var selectedEventMessage: RoomMessage? = nil
 
     // Pull the active setup directly out from your local AppStorage cache
     @AppStorage("profilePhone") private var userPhone = ""
@@ -272,7 +273,10 @@ struct GroupChatView: View {
                                         content: EventMessageCard(
                                             message: message,
                                             viewModel: viewModel,
-                                            userPhone: userPhone
+                                            userPhone: userPhone,
+                                            onTap: {
+                                                selectedEventMessage = message
+                                            }
                                         )
                                     )
                                     .id(message.id)
@@ -315,6 +319,21 @@ struct GroupChatView: View {
         .navigationBarBackButtonHidden(true)
         .navigationDestination(isPresented: $showGroupInfo) {
             GroupInfoView(room: room, memberCount: viewModel.memberCount)
+        }
+        .sheet(item: $selectedEventMessage) { msg in
+            let spotlightItem = SpotlightItem(
+                id: msg.external_event_id ?? "",
+                title: msg.external_event_name ?? "Event",
+                description: "",
+                imageUrl: msg.external_event_image_url ?? "",
+                date: nil,
+                location: nil,
+                type: msg.external_event_type,
+                url: nil,
+                priceMin: nil,
+                priceMax: nil
+            )
+            EventDetailView(item: spotlightItem)
         }
         .task {
             // 1. Fetch historical data traces
@@ -501,6 +520,7 @@ struct EventMessageCard: View {
     let message: RoomMessage
     let viewModel: GroupChatViewModel
     let userPhone: String
+    let onTap: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -508,32 +528,39 @@ struct EventMessageCard: View {
                 .font(.system(size: 16))
                 .foregroundStyle(.white)
             
-            if let imageUrl = message.external_event_image_url, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        Rectangle().fill(Color.white.opacity(0.1))
-                            .frame(height: 140)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 140)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    case .failure:
-                        Rectangle().fill(Color.white.opacity(0.1))
-                            .frame(height: 140)
-                    @unknown default:
-                        EmptyView()
+            Button {
+                onTap()
+            } label: {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let imageUrl = message.external_event_image_url, let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                Rectangle().fill(Color.white.opacity(0.1))
+                                    .frame(height: 140)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(height: 140)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            case .failure:
+                                Rectangle().fill(Color.white.opacity(0.1))
+                                    .frame(height: 140)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    }
+                    
+                    if let eventName = message.external_event_name {
+                        Text(eventName)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
                     }
                 }
             }
-            
-            if let eventName = message.external_event_name {
-                Text(eventName)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-            }
+            .buttonStyle(.plain)
             
             HStack(spacing: 8) {
                 voteButton(title: "Interested", voteKey: "interested", color: Color.green.opacity(0.2), textColor: .green)
