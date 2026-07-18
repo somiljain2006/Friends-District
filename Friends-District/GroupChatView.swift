@@ -63,16 +63,10 @@ class GroupChatViewModel: ObservableObject {
         // Close existing connections to prevent duplicate sockets
         disconnectWebSocket()
 
-        // Use URLComponents to guarantee proper percent-encoding of special characters like '+'
-        guard var components = URLComponents(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws") else {
-            print("❌ Invalid WebSocket URL Base Configuration")
-            return
-        }
+        // Manually percent-encode '+' to '%2B' because URLComponents ignores it.
+        let encodedPhone = userPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?.replacingOccurrences(of: "+", with: "%2B") ?? userPhone
         
-        components.scheme = "wss" // Swap the scheme out for secure websockets
-        components.queryItems = [URLQueryItem(name: "user_phone", value: userPhone)]
-
-        guard let url = components.url else {
+        guard let url = URL(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws?user_phone=\(encodedPhone)") else {
             print("❌ Invalid WebSocket URL Configuration")
             return
         }
