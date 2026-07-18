@@ -20,6 +20,11 @@ struct ContentView: View {
     @State private var spotlightItems: [SpotlightItem] = []
     @State private var isLoadingSpotlight = false
     
+    @State private var movies: [SpotlightItem] = []
+    @State private var concerts: [SpotlightItem] = []
+    @State private var dining: [SpotlightItem] = []
+    @State private var isLoadingSections = false
+    
     private let categories: [Category] = [
         .init(title: "Dining", icon: "dining"),
         .init(title: "Movies", icon: "movies"),
@@ -61,6 +66,16 @@ struct ContentView: View {
                             .padding(.top, 6)
                         
                         spotlightSection
+                        
+                        if isLoadingSections {
+                            ProgressView()
+                                .tint(.white)
+                                .padding(.top, 40)
+                        } else {
+                            if !movies.isEmpty { eventSection(title: "Movies", items: movies) }
+                            if !concerts.isEmpty { eventSection(title: "Concerts", items: concerts) }
+                            if !dining.isEmpty { eventSection(title: "Dining", items: dining) }
+                        }
                     }
                     .padding(.top, 14)
                     .padding(.bottom, 24)
@@ -77,6 +92,7 @@ struct ContentView: View {
         .task {
             locationManager.requestLocation()
             await fetchSpotlightEvents()
+            await fetchAllSections()
         }
     }
     
@@ -101,6 +117,32 @@ struct ContentView: View {
             await MainActor.run {
                 self.isLoadingSpotlight = false
             }
+        }
+    }
+    
+    private func fetchAllSections() async {
+        isLoadingSections = true
+        async let fetchedMovies = fetchSectionEvents(type: "movie")
+        async let fetchedConcerts = fetchSectionEvents(type: "concert")
+        async let fetchedDining = fetchSectionEvents(type: "dining")
+        
+        let (m, c, d) = await (fetchedMovies, fetchedConcerts, fetchedDining)
+        await MainActor.run {
+            self.movies = m
+            self.concerts = c
+            self.dining = d
+            self.isLoadingSections = false
+        }
+    }
+    
+    private func fetchSectionEvents(type: String) async -> [SpotlightItem] {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/events?type=\(type)") else { return [] }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return try JSONDecoder().decode([SpotlightItem].self, from: data)
+        } catch {
+            print("Failed to fetch \(type) events: \(error)")
+            return []
         }
     }
     
@@ -255,6 +297,25 @@ struct ContentView: View {
             }
         }
     }
+    
+    private func eventSection(title: String, items: [SpotlightItem]) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(items) { item in
+                        SectionCard(item: item)
+                    }
+                }
+                .padding(.horizontal, 18)
+            }
+        }
+        .padding(.top, 12)
+    }
 }
 
 // MARK: - Models
@@ -376,6 +437,47 @@ struct SpotlightCard: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 12)
             }
+        }
+    }
+}
+
+struct SectionCard: View {
+    let item: SpotlightItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ZStack(alignment: .top) {
+                Color.white.opacity(0.05)
+                    .frame(width: 240, height: 160)
+                    .overlay(
+                        AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView().tint(.white)
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            case .failure:
+                                Image(systemName: "photo").foregroundStyle(.white.opacity(0.3))
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                
+                Text(item.description)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(2)
+            }
+            .frame(width: 240, alignment: .leading)
         }
     }
 }
