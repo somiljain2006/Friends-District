@@ -102,7 +102,11 @@ struct GroupsView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(pendingInvites) { room in
-                                    PendingInviteRow(room: room)
+                                    PendingInviteRow(room: room) {
+                                        Task {
+                                            await acceptInvite(for: room)
+                                        }
+                                    }
                                     
                                     if room.id != pendingInvites.last?.id {
                                         Divider()
@@ -268,6 +272,29 @@ struct GroupsView: View {
         }
     }
     
+    /// Hitting the member parameters details to process joining validation rules
+    private func acceptInvite(for room: Room) async {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(room.id)/members") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                print("✅ Successfully accepted invite and initialized members map data for room \(room.id)")
+                // Refresh views immediately to transition out of pending UI cards
+                await fetchAllData()
+            } else {
+                print("⚠️ Server rejected query action sequence. Status Code: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            }
+        } catch {
+            print("❌ Failed processing accept invite API transaction: \(error)")
+        }
+    }
+    
     private func createRoom(name: String) async {
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms") else { return }
         
@@ -366,6 +393,7 @@ struct GroupRow: View {
 
 struct PendingInviteRow: View {
     let room: Room
+    let onAccept: () -> Void
     
     var body: some View {
         HStack(spacing: 16) {
@@ -395,9 +423,9 @@ struct PendingInviteRow: View {
             Spacer()
             
             Button {
-                print("Accepting invite for room: \(room.id)")
+                onAccept()
             } label: {
-                Text("View")
+                Text("Accept")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)

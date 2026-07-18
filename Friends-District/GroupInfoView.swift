@@ -15,18 +15,13 @@ struct GroupInfoView: View {
     @AppStorage("profilePhone") private var storedPhone = "" // Needed for inviter_phone
 
     // MARK: - API States
+    @State private var members: [GroupMember] = []
+    @State private var isLoadingMembers = false
     @State private var showInviteAlert = false
     @State private var inviteePhone = ""
     @State private var isInviting = false
     @State private var inviteMessage: String?
     @State private var showStatusAlert = false
-
-    private let members: [GroupMember] = [
-        .init(name: "You", subtitle: "Admin", initials: "Y", color: Color(red: 0.78, green: 0.24, blue: 0.32), isOnline: false),
-        .init(name: "Rahul Verma", subtitle: "Online", initials: "RV", color: Color(red: 0.22, green: 0.43, blue: 0.67), isOnline: true),
-        .init(name: "Ananya Singh", subtitle: "Online", initials: "AS", color: Color(red: 0.43, green: 0.28, blue: 0.72), isOnline: true),
-        .init(name: "Dev Choudhary", subtitle: "Online", initials: "DC", color: Color(red: 0.33, green: 0.49, blue: 0.24), isOnline: true)
-    ]
 
     var body: some View {
         ZStack {
@@ -54,7 +49,7 @@ struct GroupInfoView: View {
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundStyle(.white)
 
-                                Text("\(memberCount) members")
+                                Text("\(members.count) members")
                                     .font(.system(size: 15, weight: .regular))
                                     .foregroundStyle(.white.opacity(0.55))
                             }
@@ -71,7 +66,7 @@ struct GroupInfoView: View {
                                 
                                 Spacer()
                                 
-                                // NEW: "Add members" Pill Button
+                                // "Add members" Pill Button
                                 Button {
                                     inviteePhone = ""
                                     showInviteAlert = true
@@ -81,7 +76,7 @@ struct GroupInfoView: View {
                                         Text("Add members")
                                     }
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95)) // Purple match
+                                    .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
                                     .background(Color.clear)
@@ -94,20 +89,33 @@ struct GroupInfoView: View {
                             }
 
                             VStack(spacing: 0) {
-                                ForEach(members) { member in
-                                    MemberRow(member: member)
+                                if isLoadingMembers && members.isEmpty {
+                                    ProgressView()
+                                        .tint(.white)
+                                        .padding(.vertical, 24)
+                                        .frame(maxWidth: .infinity)
+                                } else if members.isEmpty {
+                                    Text("No members found")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.white.opacity(0.4))
+                                        .padding(.vertical, 24)
+                                        .frame(maxWidth: .infinity)
+                                } else {
+                                    ForEach(members) { member in
+                                        MemberRow(member: member)
 
-                                    if member.id != members.last?.id {
-                                        Divider()
-                                            .overlay(Color.white.opacity(0.08))
-                                            .padding(.leading, 72)
+                                        if member.id != members.last?.id {
+                                            Divider()
+                                                .overlay(Color.white.opacity(0.08))
+                                                .padding(.leading, 72)
+                                        }
                                     }
                                 }
                             }
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(Color(red: 0.12, green: 0.12, blue: 0.13)) // Card background matching screenshot
+                                    .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
                             )
                         }
                     }
@@ -127,6 +135,9 @@ struct GroupInfoView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .task {
+            await fetchRoomMembers()
+        }
         .alert("Invite Member", isPresented: $showInviteAlert) {
             TextField("Enter phone number", text: $inviteePhone)
                 .keyboardType(.phonePad)
@@ -166,7 +177,65 @@ struct GroupInfoView: View {
         .padding(.top, 14)
     }
 
-    // MARK: - API Call
+    // MARK: - API Calls
+    
+    /// Fetches all members attached to this specific room ID
+    private func fetchRoomMembers() async {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(room.id)/members") else { return }
+        
+        isLoadingMembers = true
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                isLoadingMembers = false
+                return
+            }
+            
+            let networkMembers = try JSONDecoder().decode([APIMember].self, from: data)
+            
+            // Map backend models into local display structures
+            self.members = networkMembers.map { member in
+                let isMe = (member.mobile_number == storedPhone)
+                
+                // Parse initials from their display name safely
+                let cleanInitials = member.name
+                    .components(separatedBy: " ")
+                    .compactMap { $0.first }
+                    .map { String($0) }
+                    .joined()
+                    .prefix(2)
+                
+                // Distribute colors deterministically using the database id
+                let designColors: [Color] = [
+                    Color(red: 0.78, green: 0.24, blue: 0.32), // Red Tint
+                    Color(red: 0.22, green: 0.43, blue: 0.67), // Blue Tint
+                    Color(red: 0.43, green: 0.28, blue: 0.72), // Purple Tint
+                    Color(red: 0.33, green: 0.49, blue: 0.24)  // Green Tint
+                ]
+                let mappedColor = designColors[abs(member.id.hashValue) % designColors.count]
+                
+                return GroupMember(
+                    name: isMe ? "You" : member.name,
+                    subtitle: isMe ? "Admin" : "@\(member.username)",
+                    initials: cleanInitials.isEmpty ? "?" : String(cleanInitials).uppercased(),
+                    color: mappedColor,
+                    isOnline: false // Set base value (presence state not exposed by endpoint payload)
+                )
+            }
+            
+            isLoadingMembers = false
+        } catch {
+            isLoadingMembers = false
+            print("❌ Failed processing room member entities: \(error)")
+        }
+    }
+    
     private func inviteUser() async {
         let trimmedPhone = inviteePhone.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPhone.isEmpty else { return }
@@ -189,6 +258,8 @@ struct GroupInfoView: View {
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 201 {
                     inviteMessage = "User successfully invited!"
+                    // Auto-refresh layout to reflect updates instantly
+                    await fetchRoomMembers()
                 } else if httpResponse.statusCode == 404 {
                     inviteMessage = "User or Room not found."
                 } else if httpResponse.statusCode == 400 {
@@ -211,6 +282,16 @@ struct GroupInfoView: View {
 struct InvitePayload: Codable {
     let invitee_phone: String
     let inviter_phone: String
+}
+
+struct APIMember: Codable {
+    let id: Int
+    let name: String
+    let username: String
+    let email: String
+    let mobile_number: String
+    let created_at: String
+    let updated_at: String
 }
 
 struct GroupMember: Identifiable {

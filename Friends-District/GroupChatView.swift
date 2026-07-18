@@ -64,7 +64,7 @@ class GroupChatViewModel: ObservableObject {
         disconnectWebSocket()
 
         // Use URLComponents to guarantee proper percent-encoding of special characters like '+'
-        guard var components = URLComponents(string: "https://district.monu14.me/api/v1/rooms/\(roomId)/ws") else {
+        guard var components = URLComponents(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws") else {
             print("❌ Invalid WebSocket URL Base Configuration")
             return
         }
