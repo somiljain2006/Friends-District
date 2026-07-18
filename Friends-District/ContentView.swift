@@ -25,9 +25,9 @@ struct ContentView: View {
     @State private var isLoadingSections = false
     
     private let categories: [Category] = [
-        .init(title: "Dining", icon: "dining"),
-        .init(title: "Movies", icon: "movies"),
-        .init(title: "Events", icon: "events")
+        .init(title: "Dining", icon: "dining", apiType: "dining"),
+        .init(title: "Movies", icon: "movies", apiType: "movie"),
+        .init(title: "Events", icon: "events", apiType: "concert")
     ]
     
     private let gridColumns = [
@@ -54,13 +54,8 @@ struct ContentView: View {
                             
                             LazyVGrid(columns: gridColumns, spacing: 16) {
                                 ForEach(categories) { category in
-                                    // 2. Wrap the CategoryCard in a Button
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.5)) {
-                                            // Scroll to the exact title of the category
-                                            proxy.scrollTo(category.title, anchor: .top)
-                                        }
-                                    } label: {
+                                    // 2. Wrap the CategoryCard in a NavigationLink
+                                    NavigationLink(destination: CategoryListView(category: category)) {
                                         CategoryCard(category: category)
                                     }
                                     .buttonStyle(.plain)
@@ -347,6 +342,7 @@ struct Category: Identifiable {
     let id = UUID()
     let title: String
     let icon: String
+    let apiType: String
 }
 
 struct SpotlightItem: Identifiable, Hashable, Codable {
