@@ -21,7 +21,7 @@ struct ContentView: View {
     ]
     
     private let spotlightItems: [SpotlightItem] = [
-        .init(title: "realme Music Fest | Delhi 2026", description: "Catch Dhanda Nyoliwala and another artist, yet to be revealed, live at realme Music Fest.", image: "spotlight1"),
+        .init(title: "realme Music Fest | Delhi 2026", description: "Catch Dhanda Nyoliwala yet to be revealed, live at realme Music Fest.", image: "spotlight1"),
         .init(title: "Midnight Food Crawl", description: "Experience the best late-night street food the city has to offer.", image: "spotlight2"),
         .init(title: "Standup Comedy Night", description: "Laugh out loud with the top comedians in town this weekend.", image: "spotlight3")
     ]
@@ -105,9 +105,9 @@ struct ContentView: View {
         HStack(alignment: .top) {
             HStack(alignment: .center, spacing: 10) {
                 Image(systemName: "location.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.75))
-                    .padding(.top, 2)
+                    .padding(.top, -4)
                 
                 VStack(alignment: .leading, spacing: 3) {
                     Button {
@@ -279,7 +279,7 @@ struct SpotlightCard: View {
                     Spacer()
                     
                     CircleIconButton(systemName: "bookmark")
-                        .frame(width: 42, height: 42)
+                        .frame(width: 40, height: 40)
                 }
                 .padding(16)
             }
@@ -366,7 +366,7 @@ struct ImageCircleButton: View {
                 Image(imageName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 42, height: 42)
+                    .frame(width: 32, height: 32)
             }
         }
         .buttonStyle(.plain)
