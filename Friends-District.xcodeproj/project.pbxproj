@@ -10,9 +10,22 @@
 		08C9E238300B85F3008BE094 /* Friends-District.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Friends-District.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		08C9E255300B8D85008BE094 /* Exceptions for "Friends-District" folder in "Friends-District" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 08C9E237300B85F3008BE094 /* Friends-District */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		08C9E23A300B85F3008BE094 /* Friends-District */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				08C9E255300B8D85008BE094 /* Exceptions for "Friends-District" folder in "Friends-District" target */,
+			);
 			path = "Friends-District";
 			sourceTree = "<group>";
 		};
@@ -256,6 +269,8 @@
 				DEVELOPMENT_TEAM = S4C57XC4ZW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Friends-District/Info.plist";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Friends District uses your location to show nearby restaurants, events and activities.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +303,8 @@
 				DEVELOPMENT_TEAM = S4C57XC4ZW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Friends-District/Info.plist";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Friends District uses your location to show nearby restaurants, events and activities.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
