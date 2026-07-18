@@ -232,7 +232,6 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
-                CircleIconButton(systemName: "bookmark")
 
                 Button {
                     showProfile = true
@@ -437,14 +436,7 @@ struct SpotlightCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 10)
                 
-                // Badges overlay
-                HStack(alignment: .top) {
-                    Spacer()
-                    
-                    CircleIconButton(systemName: "bookmark")
-                        .frame(width: 40, height: 40)
-                }
-                .padding(16)
+
             }
             
             // Text Content Below Image

@@ -132,11 +132,7 @@ struct EventDetailView: View {
                         CircleIconButton(systemName: "arrow.left")
                     }
                     Spacer()
-                    Button {
-                        // Bookmark action
-                    } label: {
-                        CircleIconButton(systemName: "bookmark")
-                    }
+
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
