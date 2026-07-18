@@ -241,8 +241,6 @@ struct ChatWithUsView: View {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 18) {
-                            headerCard
-                                .padding(.top, 12)
                             
                             dividerWithTitle("Today")
                                 .padding(.top, 6)
@@ -269,18 +267,18 @@ struct ChatWithUsView: View {
                         }
                         .padding(.horizontal, 18)
                     }
-                    .onChange(of: viewModel.messages.count) { _ in
+                    .onChange(of: viewModel.messages.count) { oldValue, newValue in
                         withAnimation {
                             proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
                     // Keep scroll at bottom while streaming text updates
-                    .onChange(of: viewModel.messages.last?.text) { _ in
+                    .onChange(of: viewModel.messages.last?.text) { oldValue, newValue in
                         withAnimation {
                             proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
-                    .onChange(of: viewModel.isTyping) { isTyping in
+                    .onChange(of: viewModel.isTyping) { oldValue, isTyping in
                         if isTyping {
                             withAnimation {
                                 proxy.scrollTo("typingIndicator", anchor: .bottom)
@@ -363,23 +361,6 @@ struct ChatWithUsView: View {
             }
             Spacer()
         }
-    }
-    
-    private var headerCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 12) {
-                quickActionIcon(title: "Recommendations", systemImage: "lightbulb")
-                quickActionIcon(title: "Events", systemImage: "calendar")
-                quickActionIcon(title: "Places", systemImage: "location")
-                quickActionIcon(title: "General help", systemImage: "questionmark.circle")
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-                .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(Color.white.opacity(0.08), lineWidth: 1))
-        )
     }
     
     private func quickActionIcon(title: String, systemImage: String) -> some View {

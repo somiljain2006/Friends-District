@@ -335,7 +335,7 @@ struct ProfileSetupView: View {
             throw URLError(.badURL)
         }
         
-        let formattedPhone = "\(countryCode)\(phone.trimmingCharacters(in: .whitespacesAndNewlines))"
+        let formattedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         let payload = ProfilePayload(
             email: email.trimmingCharacters(in: .whitespacesAndNewlines),
             mobile_number: formattedPhone,

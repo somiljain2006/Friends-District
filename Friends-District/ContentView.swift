@@ -11,19 +11,19 @@ struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var showGroups = false
     @State private var isAddressExpanded = false
-    @State private var currentSpotlightID: UUID?
+    
+    // Changed UUID to String to match your API response ID
+    @State private var currentSpotlightID: String?
     @State private var showProfile = false
+    
+    // New state variables for API data
+    @State private var spotlightItems: [SpotlightItem] = []
+    @State private var isLoadingSpotlight = false
     
     private let categories: [Category] = [
         .init(title: "Dining", icon: "dining"),
         .init(title: "Movies", icon: "movies"),
         .init(title: "Events", icon: "events")
-    ]
-    
-    private let spotlightItems: [SpotlightItem] = [
-        .init(title: "realme Music Fest | Delhi 2026", description: "Catch Dhanda Nyoliwala yet to be revealed, live at realme Music Fest.", image: "spotlight1"),
-        .init(title: "Midnight Food Crawl", description: "Experience the best late-night street food the city has to offer.", image: "spotlight2"),
-        .init(title: "Standup Comedy Night", description: "Laugh out loud with the top comedians in town this weekend.", image: "spotlight3")
     ]
     
     private let gridColumns = [
@@ -73,14 +73,38 @@ struct ContentView: View {
                 GroupsView()
             }
         }
-        .onAppear {
+        // Switched from .onAppear to .task for modern async/await networking
+        .task {
             locationManager.requestLocation()
-            if currentSpotlightID == nil {
-                currentSpotlightID = spotlightItems.first?.id
+            await fetchSpotlightEvents()
+        }
+    }
+    
+    private func fetchSpotlightEvents() async {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/events/spotlight") else { return }
+        
+        isLoadingSpotlight = true
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let decodedItems = try JSONDecoder().decode([SpotlightItem].self, from: data)
+            
+            await MainActor.run {
+                self.spotlightItems = decodedItems
+                if self.currentSpotlightID == nil {
+                    self.currentSpotlightID = decodedItems.first?.id
+                }
+                self.isLoadingSpotlight = false
+            }
+        } catch {
+            print("Failed to fetch or decode spotlight events: \(error)")
+            await MainActor.run {
+                self.isLoadingSpotlight = false
             }
         }
     }
     
+    // MARK: - View Components
     private var background: some View {
         LinearGradient(
             colors: [
@@ -148,8 +172,9 @@ struct ContentView: View {
                     ImageCircleButton(imageName: "persons")
                 }
                 .buttonStyle(.plain)
+
                 CircleIconButton(systemName: "bookmark")
-                
+
                 Button {
                     showProfile = true
                 } label: {
@@ -189,53 +214,78 @@ struct ContentView: View {
     
     private var spotlightSection: some View {
         VStack(spacing: 20) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+            if isLoadingSpotlight && spotlightItems.isEmpty {
+                ProgressView()
+                    .tint(.white)
+                    .frame(height: 420)
+            } else if spotlightItems.isEmpty {
+                Text("No spotlight events right now.")
+                    .foregroundStyle(.white.opacity(0.6))
+                    .frame(height: 420)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(spotlightItems) { item in
+                            SpotlightCard(item: item)
+                                .containerRelativeFrame(.horizontal, count: 1, span: 1, spacing: 16)
+                                .id(item.id)
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $currentSpotlightID)
+                .safeAreaPadding(.horizontal, 32)
+                
+                HStack(spacing: 8) {
                     ForEach(spotlightItems) { item in
-                        SpotlightCard(item: item)
-                            .containerRelativeFrame(.horizontal, count: 1, span: 1, spacing: 16)
-                            .id(item.id)
+                        if currentSpotlightID == item.id {
+                            Capsule()
+                                .fill(Color.white)
+                                .frame(width: 24, height: 6)
+                        } else {
+                            Circle()
+                                .fill(Color.white.opacity(0.35))
+                                .frame(width: 6, height: 6)
+                        }
                     }
                 }
-                .scrollTargetLayout()
+                .padding(.top, 4)
+                .animation(.snappy, value: currentSpotlightID)
             }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $currentSpotlightID)
-            .safeAreaPadding(.horizontal, 32)
-            
-            HStack(spacing: 8) {
-                ForEach(spotlightItems) { item in
-                    if currentSpotlightID == item.id {
-                        Capsule()
-                            .fill(Color.white)
-                            .frame(width: 24, height: 6)
-                    } else {
-                        Circle()
-                            .fill(Color.white.opacity(0.35))
-                            .frame(width: 6, height: 6)
-                    }
-                }
-            }
-            .padding(.top, 4)
-            .animation(.snappy, value: currentSpotlightID)
         }
     }
 }
 
+// MARK: - Models
 struct Category: Identifiable {
     let id = UUID()
     let title: String
     let icon: String
 }
 
-// 4. Must conform to Hashable for the ScrollPosition tracking to work
-struct SpotlightItem: Identifiable, Hashable {
-    let id = UUID()
+struct SpotlightItem: Identifiable, Hashable, Codable {
+    let id: String
     let title: String
     let description: String
-    let image: String
+    let imageUrl: String
+    
+    let date: String?
+    let location: String?
+    let type: String?
+    let url: String?
+    let priceMin: Double?
+    let priceMax: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, location, date, type, url
+        case imageUrl = "image_url"
+        case priceMin = "price_min"
+        case priceMax = "price_max"
+    }
 }
 
+// MARK: - Subviews
 struct CategoryCard: View {
     let category: Category
     
@@ -266,24 +316,43 @@ struct CategoryCard: View {
     }
 }
 
-// 5. Updated Card Layout
 struct SpotlightCard: View {
     let item: SpotlightItem
     
     var body: some View {
         VStack(alignment: .center, spacing: 16) {
             ZStack(alignment: .top) {
-                // Background shadow and image
-                Image(item.image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 420) // Fixed height, width adapts to container
+                
+                // 1. Establish a rigid, unchanging bounding box
+                Color.white.opacity(0.05)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 420)
+                    // 2. Place AsyncImage in an overlay so it cannot stretch the container
+                    .overlay(
+                        AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .tint(.white)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill() // Fills the overlay without expanding it
+                            case .failure:
+                                Image(systemName: "photo")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(.white.opacity(0.3))
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    )
+                    // 3. Clip the entire container (which neatly crops any scaledToFill overflow)
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 10)
                 
                 // Badges overlay
                 HStack(alignment: .top) {
-                    
                     Spacer()
                     
                     CircleIconButton(systemName: "bookmark")
@@ -359,25 +428,20 @@ struct ImageCircleButton: View {
     let imageName: String
 
     var body: some View {
-        Button {
-            print("\(imageName) tapped")
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.07))
-                    .frame(width: 42, height: 42)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.07), lineWidth: 1)
-                    )
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.07))
+                .frame(width: 42, height: 42)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                )
 
-                Image(imageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 32, height: 32)
-            }
+            Image(imageName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 32, height: 32)
         }
-        .buttonStyle(.plain)
     }
 }
 
