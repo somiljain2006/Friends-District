@@ -13,14 +13,7 @@ struct AddFriendView: View {
     // Grab the stored phone from ProfileSetupView or Login
     @AppStorage("profileUsername") private var storedUsername = ""
     
-    enum SearchMode: String, CaseIterable {
-        case phone = "Phone Number"
-        case email = "Email Address"
-    }
-    
-    @State private var selectedMode: SearchMode = .phone
-    @State private var phoneNumber = ""
-    @State private var emailAddress = ""
+    @State private var searchUsername = ""
     
     // API States (Send Request)
     @State private var isSending = false
@@ -30,8 +23,8 @@ struct AddFriendView: View {
     @State private var receivedRequests: [FriendModel] = []
     @State private var sentRequests: [FriendModel] = []
     @State private var isLoadingRequests = false
-    @State private var acceptingPhones: Set<String> = []
-    @State private var rejectingPhones: Set<String> = []
+    @State private var acceptingUsernames: Set<String> = []
+    @State private var rejectingUsernames: Set<String> = []
     @State private var requestsError: String? = nil
     
     enum RequestStatus {
@@ -48,51 +41,30 @@ struct AddFriendView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     topBar
                     
-                    segmentedControl
-                    
-                    Text(selectedMode == .phone ? "Enter your friend's phone number" : "Enter your friend's email address")
+                    Text("Enter your friend's username")
                         .font(.system(size: 18, weight: .regular))
                         .foregroundStyle(.white.opacity(0.6))
                         .padding(.top, 4)
                     
-                    if selectedMode == .phone {
-                        inputField(
-                            placeholder: "+91 XXXXX XXXXX",
-                            text: $phoneNumber,
-                            systemImage: "phone.fill"
-                        )
-                        .keyboardType(.phonePad)
-                    } else {
-                        inputField(
-                            placeholder: "Enter email address",
-                            text: $emailAddress,
-                            systemImage: "envelope.fill"
-                        )
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                    }
+                    inputField(
+                        placeholder: "@username",
+                        text: $searchUsername,
+                        systemImage: "person.fill"
+                    )
+                    .textInputAutocapitalization(.never)
                     
                     Divider()
                         .overlay(Color.white.opacity(0.12))
                         .padding(.top, 16)
                     
                     // Dynamic Search Result Block
-                    if selectedMode == .phone && !phoneNumber.isEmpty {
+                    if !searchUsername.isEmpty {
                         Text("Search Result")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.top, 6)
                         
                         searchResultBlock
-                    } else if selectedMode == .email && !emailAddress.isEmpty {
-                        Text("Search Result")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.top, 6)
-                        
-                        Text("Search by email is not supported yet.")
-                            .foregroundStyle(.white.opacity(0.5))
-                            .padding(.top, 8)
                     }
                     
                     // NEW: Received and Sent Requests Sections
@@ -108,7 +80,7 @@ struct AddFriendView: View {
         .task {
             await fetchRequests()
         }
-        .onChange(of: phoneNumber) { oldValue, newValue in
+        .onChange(of: searchUsername) { oldValue, newValue in
             // Reset status when user types a new number
             requestStatus = .idle
         }
@@ -141,39 +113,6 @@ struct AddFriendView: View {
             
             Spacer()
         }
-    }
-    
-    private var segmentedControl: some View {
-        HStack(spacing: 0) {
-            ForEach(SearchMode.allCases, id: \.self) { mode in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedMode = mode
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: mode == .phone ? "phone.fill" : "envelope")
-                            .font(.system(size: 18, weight: .semibold))
-                        
-                        Text(mode.rawValue)
-                            .font(.system(size: 18, weight: .semibold))
-                    }
-                    .foregroundStyle(selectedMode == mode ? .white : .white.opacity(0.45))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(selectedMode == mode ? Color(red: 0.52, green: 0.22, blue: 0.95) : Color.clear)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(6)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-        )
     }
     
     private func inputField(placeholder: String, text: Binding<String>, systemImage: String) -> some View {
@@ -212,7 +151,7 @@ struct AddFriendView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(phoneNumber)
+                    Text(searchUsername)
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(.white)
                     
@@ -324,11 +263,11 @@ struct AddFriendView: View {
             // Reject Button
             Button {
                 Task {
-                    await rejectFriendRequest(friendUsername: request.mobile_number)
+                    await rejectFriendRequest(friendUsername: (request.username ?? ""))
                 }
             } label: {
                 ZStack {
-                    if rejectingPhones.contains(request.mobile_number) {
+                    if rejectingUsernames.contains((request.username ?? "")) {
                         ProgressView().tint(.white)
                     } else {
                         Image(systemName: "xmark")
@@ -341,16 +280,16 @@ struct AddFriendView: View {
                 .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .disabled(rejectingPhones.contains(request.mobile_number) || acceptingPhones.contains(request.mobile_number))
+            .disabled(rejectingUsernames.contains((request.username ?? "")) || acceptingUsernames.contains((request.username ?? "")))
             
             // Accept Button
             Button {
                 Task {
-                    await acceptFriendRequest(friendUsername: request.mobile_number)
+                    await acceptFriendRequest(friendUsername: (request.username ?? ""))
                 }
             } label: {
                 ZStack {
-                    if acceptingPhones.contains(request.mobile_number) {
+                    if acceptingUsernames.contains((request.username ?? "")) {
                         ProgressView().tint(.white)
                     } else {
                         Image(systemName: "checkmark")
@@ -363,7 +302,7 @@ struct AddFriendView: View {
                 .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .disabled(acceptingPhones.contains(request.mobile_number) || rejectingPhones.contains(request.mobile_number))
+            .disabled(acceptingUsernames.contains((request.username ?? "")) || rejectingUsernames.contains((request.username ?? "")))
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
@@ -477,7 +416,7 @@ struct AddFriendView: View {
     // MARK: - API Calls
     
     private func sendFriendRequest() async {
-        guard !phoneNumber.isEmpty else { return }
+        guard !searchUsername.isEmpty else { return }
         
         isSending = true
         requestStatus = .idle
@@ -493,7 +432,7 @@ struct AddFriendView: View {
         
         let body: [String: String] = [
             "username": storedUsername,
-            "friend_username": phoneNumber
+            "friend_username": searchUsername
         ]
         
         do {
@@ -531,10 +470,10 @@ struct AddFriendView: View {
     // Accept Friend Request API Call
     private func acceptFriendRequest(friendUsername: String) async {
         requestsError = nil
-        acceptingPhones.insert(friendUsername)
+        acceptingUsernames.insert(friendUsername)
         
         guard let url = URL(string: "https://district.monu14.me/api/v1/friends/accept") else {
-            acceptingPhones.remove(friendUsername)
+            acceptingUsernames.remove(friendUsername)
             return
         }
         
@@ -552,14 +491,14 @@ struct AddFriendView: View {
             let (_, response) = try await URLSession.shared.data(for: request)
             
             await MainActor.run {
-                acceptingPhones.remove(friendUsername)
+                acceptingUsernames.remove(friendUsername)
                 
                 if let httpResponse = response as? HTTPURLResponse {
                     switch httpResponse.statusCode {
                     case 200:
                         // On success, we remove the user from the UI list
                         withAnimation {
-                            receivedRequests.removeAll { $0.mobile_number == friendUsername }
+                            receivedRequests.removeAll { $0.username == friendUsername }
                         }
                     case 400:
                         requestsError = "Invalid request parameters."
@@ -576,7 +515,7 @@ struct AddFriendView: View {
             }
         } catch {
             await MainActor.run {
-                acceptingPhones.remove(friendUsername)
+                acceptingUsernames.remove(friendUsername)
                 requestsError = "Network error: \(error.localizedDescription)"
             }
         }
@@ -584,10 +523,10 @@ struct AddFriendView: View {
 
     private func rejectFriendRequest(friendUsername: String) async {
         requestsError = nil
-        rejectingPhones.insert(friendUsername)
+        rejectingUsernames.insert(friendUsername)
         
         guard let url = URL(string: "https://district.monu14.me/api/v1/friends/reject") else {
-            rejectingPhones.remove(friendUsername)
+            rejectingUsernames.remove(friendUsername)
             return
         }
         
@@ -605,11 +544,11 @@ struct AddFriendView: View {
             let (_, response) = try await URLSession.shared.data(for: request)
             
             await MainActor.run {
-                rejectingPhones.remove(friendUsername)
+                rejectingUsernames.remove(friendUsername)
                 
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     withAnimation {
-                        receivedRequests.removeAll { $0.mobile_number == friendUsername }
+                        receivedRequests.removeAll { $0.username == friendUsername }
                     }
                 } else {
                     requestsError = "Failed to reject. Please try again."
@@ -617,7 +556,7 @@ struct AddFriendView: View {
             }
         } catch {
             await MainActor.run {
-                rejectingPhones.remove(friendUsername)
+                rejectingUsernames.remove(friendUsername)
                 requestsError = "Network error: \(error.localizedDescription)"
             }
         }
