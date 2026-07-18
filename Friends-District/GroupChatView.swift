@@ -15,15 +15,25 @@ struct MessageSender: Codable {
     let mobile_number: String
 }
 
+struct MessageVote: Codable, Identifiable {
+    let id: Int
+    let message_id: Int
+    let user_id: Int
+    let vote: String // "interested", "maybe", "not_interested"
+}
+
 struct RoomMessage: Codable, Identifiable {
     let id: Int
     let content: String
     let created_at: String
     let external_event_id: String?
     let external_event_type: String?
+    let external_event_name: String?
+    let external_event_image_url: String?
     let room_id: Int
     let sender_id: Int
     let sender: MessageSender?
+    let votes: [MessageVote]?
 }
 
 // MARK: - View Model
@@ -102,13 +112,37 @@ class GroupChatViewModel: ObservableObject {
 
         print("🔌 Connecting to WebSocket: \(url.absoluteString)")
         let session = URLSession(configuration: .default)
-        let task = session.webSocketTask(with: url)
-        self.webSocketTask = task
+        let task = URLSession.shared.webSocketTask(with: url)
+        webSocketTask = task
+        
         task.resume()
-
+        
         // Start listening looping mechanism for incoming frames
         Task {
             await listenForWebSocketMessages()
+        }
+    }
+
+    func voteOnEvent(messageId: Int, userPhone: String, vote: String) async {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/messages/\(messageId)/vote") else { return }
+        
+        let payload = [
+            "user_phone": userPhone,
+            "vote": vote
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try JSONEncoder().encode(payload)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                print("Failed to vote, status: \(httpResponse.statusCode)")
+            }
+        } catch {
+            print("Error casting vote: \(error)")
         }
     }
 
@@ -148,9 +182,15 @@ class GroupChatViewModel: ObservableObject {
     /// Safely decodes text payloads to append to the active message state array
     private func parseAndAppendIncomingMessage(_ data: Data) {
         do {
-            let incomingMsg = try JSONDecoder().decode(RoomMessage.self, from: data)
-            // Ensure UI updates stay isolated safely onto the Main Thread
-            self.messages.append(incomingMsg)
+            let decoder = JSONDecoder()
+            let parsedMessage = try decoder.decode(RoomMessage.self, from: data)
+            
+            // If message already exists (like from a vote update), replace it
+            if let index = self.messages.firstIndex(where: { $0.id == parsedMessage.id }) {
+                self.messages[index] = parsedMessage
+            } else {
+                self.messages.append(parsedMessage)
+            }
         } catch {
             // Fallback to print the actual string token starting with 'Y' if decoding fails
             if let rawString = String(data: data, encoding: .utf8) {
@@ -222,20 +262,37 @@ struct GroupChatView: View {
                             ForEach(viewModel.messages) { message in
                                 let senderDetails = getSenderDetails(for: message)
                                 
-                                userMessageRow(
-                                    initials: senderDetails.initials,
-                                    name: senderDetails.name,
-                                    avatarColor: senderDetails.color,
-                                    isMe: senderDetails.isMe,
-                                    content: Text(message.content)
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 12)
-                                        .background(senderDetails.isMe ? Color(red: 0.52, green: 0.22, blue: 0.95) : Color.white.opacity(0.08))
-                                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                                )
-                                .id(message.id)
+                                if let eventId = message.external_event_id, !eventId.isEmpty {
+                                    // Interactive Event Card
+                                    userMessageRow(
+                                        initials: senderDetails.initials,
+                                        name: senderDetails.name,
+                                        avatarColor: senderDetails.color,
+                                        isMe: senderDetails.isMe,
+                                        content: EventMessageCard(
+                                            message: message,
+                                            viewModel: viewModel,
+                                            userPhone: userPhone
+                                        )
+                                    )
+                                    .id(message.id)
+                                } else {
+                                    // Standard Text Message
+                                    userMessageRow(
+                                        initials: senderDetails.initials,
+                                        name: senderDetails.name,
+                                        avatarColor: senderDetails.color,
+                                        isMe: senderDetails.isMe,
+                                        content: Text(message.content)
+                                            .font(.system(size: 16))
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(senderDetails.isMe ? Color(red: 0.52, green: 0.22, blue: 0.95) : Color.white.opacity(0.08))
+                                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                                    )
+                                    .id(message.id)
+                                }
                             }
                         }
                     }
@@ -436,6 +493,81 @@ struct GroupChatView: View {
         .padding(.top, 12)
         .padding(.bottom, 24)
         .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+    }
+}
+
+// MARK: - EventMessageCard
+struct EventMessageCard: View {
+    let message: RoomMessage
+    let viewModel: GroupChatViewModel
+    let userPhone: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(message.content)
+                .font(.system(size: 16))
+                .foregroundStyle(.white)
+            
+            if let imageUrl = message.external_event_image_url, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        Rectangle().fill(Color.white.opacity(0.1))
+                            .frame(height: 140)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    case .failure:
+                        Rectangle().fill(Color.white.opacity(0.1))
+                            .frame(height: 140)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+            
+            if let eventName = message.external_event_name {
+                Text(eventName)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            
+            HStack(spacing: 8) {
+                voteButton(title: "Interested", voteKey: "interested", color: Color.green.opacity(0.2), textColor: .green)
+                voteButton(title: "Maybe", voteKey: "maybe", color: Color.yellow.opacity(0.2), textColor: .yellow)
+                voteButton(title: "Not", voteKey: "not_interested", color: Color.red.opacity(0.2), textColor: .red)
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+    
+    @ViewBuilder
+    private func voteButton(title: String, voteKey: String, color: Color, textColor: Color) -> some View {
+        let count = message.votes?.filter { $0.vote == voteKey }.count ?? 0
+        
+        Button {
+            Task {
+                await viewModel.voteOnEvent(messageId: message.id, userPhone: userPhone, vote: voteKey)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                Text("(\(count))")
+                    .font(.system(size: 12))
+            }
+            .foregroundStyle(textColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(color)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 
