@@ -298,7 +298,9 @@ struct EventDetailView: View {
         let payload = [
             "user_phone": storedPhone,
             "external_event_id": item.id,
-            "external_event_type": item.type ?? "event"
+            "external_event_type": item.type ?? "event",
+            "external_event_name": item.title,
+            "external_event_image_url": item.imageUrl
         ]
         
         var request = URLRequest(url: url)
