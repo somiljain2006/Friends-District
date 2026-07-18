@@ -351,7 +351,7 @@ struct EventDetailView: View {
         } catch {
             print("Failed to share event: \(error)")
             await MainActor.run {
-                self.errorMessage = "Network error while sharing."
+                self.errorMessage = ""
                 self.isSharing = false
             }
         }

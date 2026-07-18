@@ -1,4 +1,3 @@
-//
 //  ContentView.swift
 //  Friends-District
 //
@@ -44,41 +43,55 @@ struct ContentView: View {
                     .ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
-                        header
+                    // 1. Wrap the VStack in a ScrollViewReader to enable programmatic scrolling
+                    ScrollViewReader { proxy in
+                        VStack(alignment: .leading, spacing: 22) {
+                            header
+                                .padding(.horizontal, 18)
+                            
+                            searchBar
+                                .padding(.horizontal, 18)
+                            
+                            LazyVGrid(columns: gridColumns, spacing: 16) {
+                                ForEach(categories) { category in
+                                    // 2. Wrap the CategoryCard in a Button
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                            // Scroll to the exact title of the category
+                                            proxy.scrollTo(category.title, anchor: .top)
+                                        }
+                                    } label: {
+                                        CategoryCard(category: category)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
                             .padding(.horizontal, 18)
-                        
-                        searchBar
-                            .padding(.horizontal, 18)
-                        
-                        LazyVGrid(columns: gridColumns, spacing: 16) {
-                            ForEach(categories) { category in
-                                CategoryCard(category: category)
+                            .padding(.top, 4)
+                            
+                            Text("In the spotlight")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 18)
+                                .padding(.top, 6)
+                            
+                            spotlightSection
+                            
+                            if isLoadingSections {
+                                ProgressView()
+                                    .tint(.white)
+                                    .padding(.top, 40)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                            } else {
+                                // Changed "Concerts" to "Events" so it matches your category array above
+                                if !movies.isEmpty { eventSection(title: "Movies", items: movies) }
+                                if !concerts.isEmpty { eventSection(title: "Events", items: concerts) }
+                                if !dining.isEmpty { eventSection(title: "Dining", items: dining) }
                             }
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.top, 4)
-                        
-                        Text("In the spotlight")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 18)
-                            .padding(.top, 6)
-                        
-                        spotlightSection
-                        
-                        if isLoadingSections {
-                            ProgressView()
-                                .tint(.white)
-                                .padding(.top, 40)
-                        } else {
-                            if !movies.isEmpty { eventSection(title: "Movies", items: movies) }
-                            if !concerts.isEmpty { eventSection(title: "Concerts", items: concerts) }
-                            if !dining.isEmpty { eventSection(title: "Dining", items: dining) }
-                        }
+                        .padding(.top, 14)
+                        .padding(.bottom, 24)
                     }
-                    .padding(.top, 14)
-                    .padding(.bottom, 24)
                 }
             }
             .navigationDestination(isPresented: $showProfile) {
@@ -88,7 +101,6 @@ struct ContentView: View {
                 GroupsView()
             }
         }
-        // Switched from .onAppear to .task for modern async/await networking
         .task {
             locationManager.requestLocation()
             await fetchSpotlightEvents()
@@ -191,7 +203,7 @@ struct ContentView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Text(locationManager.area)
-                                .font(.system(size: 26, weight: .bold))
+                                .font(.system(size: 22, weight: .bold))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                             
@@ -326,6 +338,8 @@ struct ContentView: View {
             }
         }
         .padding(.top, 12)
+        // 3. Add an ID identical to the title so ScrollViewReader can find it
+        .id(title)
     }
 }
 
