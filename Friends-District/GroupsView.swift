@@ -1,4 +1,3 @@
-//
 //  GroupsView.swift
 //  Friends-District
 //
@@ -7,10 +6,12 @@
 
 import SwiftUI
 
+// Adding @MainActor here ensures all UI state changes safely run on the main thread
 @MainActor
 struct GroupsView: View {
     @Environment(\.dismiss) private var dismiss
     
+    // Grab the stored phone from ProfileSetupView
     @AppStorage("profilePhone") private var storedPhone = ""
     
     @State private var rooms: [Room] = []
@@ -19,152 +20,154 @@ struct GroupsView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     
-    // MARK: - Create Group States
+    // MARK: - New Create Group States
     @State private var showCreateAlert = false
     @State private var newGroupName = ""
     @State private var isCreating = false
     
     // MARK: - Navigation State
-    @State private var navigatingToRoom: Room?
+    @State private var selectedRoom: Room? // Track the active chat room selection
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        topBar
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    topBar
+                    
+                    if isLoading && rooms.isEmpty && pendingInvites.isEmpty {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if let errorMessage {
+                        Text(errorMessage)
+                            .foregroundStyle(.red.opacity(0.8))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 40)
+                    } else {
                         
-                        if isLoading && rooms.isEmpty && pendingInvites.isEmpty {
-                            ProgressView()
-                                .tint(.white)
-                                .frame(maxWidth: .infinity, minHeight: 200)
-                        } else if let errorMessage {
-                            Text(errorMessage)
-                                .foregroundStyle(.red.opacity(0.8))
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.top, 40)
+                        // MARK: - Joined Groups Section
+                        Text("\(rooms.count) groups")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.45))
+                            .padding(.top, 8)
+                        
+                        if rooms.isEmpty {
+                            Text("You haven't joined any groups yet.")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.5))
+                                .padding(.top, 8)
                         } else {
-                            
-                            // MARK: - Joined Groups Section
-                            Text("\(rooms.count) groups")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.45))
-                                .padding(.top, 8)
-                            
-                            if rooms.isEmpty {
-                                Text("You haven't joined any groups yet.")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.5))
-                                    .padding(.top, 8)
-                            } else {
-                                VStack(spacing: 0) {
-                                    ForEach(rooms) { room in
-                                        Button {
-                                            navigatingToRoom = room
-                                        } label: {
-                                            GroupRow(room: room)
-                                        }
-                                        .buttonStyle(.plain)
-                                        
-                                        if room.id != rooms.last?.id {
-                                            Divider()
-                                                .overlay(Color.white.opacity(0.08))
-                                                .padding(.leading, 84)
-                                        }
+                            VStack(spacing: 0) {
+                                ForEach(rooms) { room in
+                                    Button {
+                                        // Set the room selection to trigger navigation
+                                        selectedRoom = room
+                                    } label: {
+                                        GroupRow(room: room)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    if room.id != rooms.last?.id {
+                                        Divider()
+                                            .overlay(Color.white.opacity(0.08))
+                                            .padding(.leading, 84)
                                     }
                                 }
-                                .padding(.vertical, 10)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                        .fill(Color.white.opacity(0.05))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                                        )
-                                )
-                                .padding(.top, 8)
                             }
-                            
-                            // MARK: - Pending Invites Section
-                            Text("Pending invites (\(pendingInvites.count))")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.45))
-                                .padding(.top, 24)
-                            
-                            if pendingInvites.isEmpty {
-                                Text("No pending invitations.")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.5))
-                                    .padding(.top, 8)
-                            } else {
-                                VStack(spacing: 0) {
-                                    ForEach(pendingInvites) { room in
-                                        PendingInviteRow(room: room)
-                                        
-                                        if room.id != pendingInvites.last?.id {
-                                            Divider()
-                                                .overlay(Color.white.opacity(0.08))
-                                                .padding(.leading, 84)
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 10)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                        .fill(Color.white.opacity(0.05))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                                        )
-                                )
-                                .padding(.top, 8)
-                            }
-                            
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .fill(Color.white.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                    )
+                            )
+                            .padding(.top, 8)
                         }
+                        
+                        // MARK: - Pending Invites Section
+                        Text("Pending invites (\(pendingInvites.count))")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.45))
+                            .padding(.top, 24)
+                        
+                        if pendingInvites.isEmpty {
+                            Text("No pending invitations.")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.5))
+                                .padding(.top, 8)
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(pendingInvites) { room in
+                                    PendingInviteRow(room: room)
+                                    
+                                    if room.id != pendingInvites.last?.id {
+                                        Divider()
+                                            .overlay(Color.white.opacity(0.08))
+                                            .padding(.leading, 84)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .fill(Color.white.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                    )
+                            )
+                            .padding(.top, 8)
+                        }
+                        
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
                 }
+                .padding(.horizontal, 18)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
+            }
+            
+            // Show a loading spinner over the whole screen while creating
+            if isCreating {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                ProgressView("Creating...")
+                    .tint(.white)
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .cornerRadius(12)
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        // Explicitly binds the selection state to present the chat room
+        .navigationDestination(item: $selectedRoom) { room in
+            GroupChatView(room: room)
+        }
+        .task {
+            await fetchAllData()
+        }
+        // MARK: - Create Group Alert
+        .alert("Create New Group", isPresented: $showCreateAlert) {
+            TextField("Group Name", text: $newGroupName)
+            
+            Button("Cancel", role: .cancel) {
+                newGroupName = ""
+            }
+            
+            Button("Create") {
+                let trimmedName = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmedName.isEmpty else { return }
                 
-                if isCreating {
-                    Color.black.opacity(0.4).ignoresSafeArea()
-                    ProgressView("Creating & Joining...")
-                        .tint(.white)
-                        .foregroundStyle(.white)
-                        .padding()
-                        .background(Color(red: 0.15, green: 0.15, blue: 0.18))
-                        .cornerRadius(12)
-                }
-            }
-            .navigationBarBackButtonHidden(true)
-            .navigationDestination(item: $navigatingToRoom) { room in
-                GroupChatView(room: room)
-            }
-            .task {
-                await fetchAllData()
-            }
-            .alert("Create New Group", isPresented: $showCreateAlert) {
-                TextField("Group Name", text: $newGroupName)
-                
-                Button("Cancel", role: .cancel) {
+                Task {
+                    await createRoom(name: trimmedName)
                     newGroupName = ""
                 }
-                
-                Button("Create") {
-                    let trimmedName = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmedName.isEmpty else { return }
-                    
-                    Task {
-                        await createAndJoinRoom(name: trimmedName)
-                        newGroupName = ""
-                    }
-                }
-            } message: {
-                Text("Enter a name for your new group.")
             }
+        } message: {
+            Text("Enter a name for your new group.")
         }
     }
     
@@ -217,7 +220,6 @@ struct GroupsView: View {
     }
     
     // MARK: - API Calls
-    
     private func fetchAllData() async {
         isLoading = true
         errorMessage = nil
@@ -241,7 +243,8 @@ struct GroupsView: View {
                 self.errorMessage = "Failed to load groups."
                 return
             }
-            self.rooms = try JSONDecoder().decode([Room].self, from: data)
+            let decodedRooms = try JSONDecoder().decode([Room].self, from: data)
+            self.rooms = decodedRooms
         } catch {
             print("Failed to fetch rooms: \(error)")
             self.errorMessage = "Network error occurred."
@@ -255,27 +258,29 @@ struct GroupsView: View {
         
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else { return }
-            self.pendingInvites = try JSONDecoder().decode([Room].self, from: data)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return
+            }
+            let decodedInvites = try JSONDecoder().decode([Room].self, from: data)
+            self.pendingInvites = decodedInvites
         } catch {
             print("Failed to fetch pending invites: \(error)")
         }
     }
     
-    // MARK: - Modified Create & Join Flow
-    private func createAndJoinRoom(name: String) async {
-        guard let createUrl = URL(string: "https://district.monu14.me/api/v1/rooms") else { return }
+    private func createRoom(name: String) async {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms") else { return }
         
         isCreating = true
-        let payload = CreateRoomPayload(name: name) // Backend docs for create doesn't strictly list user_phone inside body for room creation, but add if needed
+        let payload = CreateRoomPayload(name: name, user_phone: storedPhone)
         
-        var request = URLRequest(url: createUrl)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         do {
             request.httpBody = try JSONEncoder().encode(payload)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
                 self.errorMessage = "Failed to create group."
@@ -283,16 +288,8 @@ struct GroupsView: View {
                 return
             }
             
-            // Decode the newly created room to get its ID
-            let newRoom = try JSONDecoder().decode(Room.self, from: data)
-            
-            // Use ID to join the room
-            await joinRoom(roomId: newRoom.id)
-            
-            // Refresh state & Navigate
-            await fetchAllData()
             self.isCreating = false
-            self.navigatingToRoom = newRoom
+            await fetchAllData()
             
         } catch {
             print("Failed to create room: \(error)")
@@ -300,31 +297,9 @@ struct GroupsView: View {
             self.isCreating = false
         }
     }
-    
-    private func joinRoom(roomId: Int) async {
-        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(roomId)/join") else { return }
-        
-        let joinPayload = JoinRoomPayload(user_phone: storedPhone)
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            request.httpBody = try JSONEncoder().encode(joinPayload)
-            let (_, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                print("Failed to join room, status code: \(httpResponse.statusCode)")
-            }
-        } catch {
-            print("Failed to join room: \(error)")
-        }
-    }
 }
 
 // MARK: - Models
-
 struct Room: Identifiable, Codable, Hashable {
     let id: Int
     let name: String
@@ -348,35 +323,37 @@ struct Room: Identifiable, Codable, Hashable {
 
 struct CreateRoomPayload: Codable {
     let name: String
-}
-
-struct JoinRoomPayload: Codable {
     let user_phone: String
 }
 
-// MARK: - Row Subviews
-// (GroupRow and PendingInviteRow remain unchanged from your original code)
+// MARK: - Subviews
 struct GroupRow: View {
     let room: Room
+    
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(room.themeColor)
                     .frame(width: 64, height: 64)
+                
                 Text(room.initial)
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
             }
+            
             VStack(alignment: .leading, spacing: 6) {
                 Text(room.name)
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(.white)
+                
                 Text("Active recently")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.white.opacity(0.5))
             }
+            
             Spacer()
+            
             Image(systemName: "chevron.right")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.25))
@@ -389,26 +366,34 @@ struct GroupRow: View {
 
 struct PendingInviteRow: View {
     let room: Room
+    
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(room.themeColor.opacity(0.6))
                     .frame(width: 64, height: 64)
-                    .overlay(Circle().stroke(Color.white.opacity(0.2), style: StrokeStyle(lineWidth: 2, dash: [5])))
+                    .overlay(
+                        Circle().stroke(Color.white.opacity(0.2), style: StrokeStyle(lineWidth: 2, dash: [5]))
+                    )
+                
                 Text(room.initial)
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white.opacity(0.8))
             }
+            
             VStack(alignment: .leading, spacing: 6) {
                 Text(room.name)
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(.white)
+                
                 Text("Invitation pending")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
             }
+            
             Spacer()
+            
             Button {
                 print("Accepting invite for room: \(room.id)")
             } label: {
@@ -428,5 +413,7 @@ struct PendingInviteRow: View {
 }
 
 #Preview {
-    GroupsView()
+    NavigationStack {
+        GroupsView()
+    }
 }

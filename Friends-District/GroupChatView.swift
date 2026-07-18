@@ -1,4 +1,3 @@
-//
 //  GroupChatView.swift
 //  Friends-District
 //
@@ -26,6 +25,10 @@ class GroupChatViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var errorMessage: String? = nil
 
+    // WebSocket Task reference
+    private var webSocketTask: URLSessionWebSocketTask?
+
+    /// Fetches initial history via REST API
     func fetchMessages(roomId: Int) async {
         isLoading = true
         errorMessage = nil
@@ -54,6 +57,101 @@ class GroupChatViewModel: ObservableObject {
         
         isLoading = false
     }
+
+    /// Establishes the real-time WebSocket connection
+    func connectWebSocket(roomId: Int, userPhone: String) {
+        // Close existing connections to prevent duplicate sockets
+        disconnectWebSocket()
+
+        // Use URLComponents to guarantee proper percent-encoding of special characters like '+'
+        guard var components = URLComponents(string: "https://district.monu14.me/api/v1/rooms/\(roomId)/ws") else {
+            print("❌ Invalid WebSocket URL Base Configuration")
+            return
+        }
+        
+        components.scheme = "wss" // Swap the scheme out for secure websockets
+        components.queryItems = [URLQueryItem(name: "user_phone", value: userPhone)]
+
+        guard let url = components.url else {
+            print("❌ Invalid WebSocket URL Configuration")
+            return
+        }
+
+        print("🔌 Connecting to WebSocket: \(url.absoluteString)")
+        let session = URLSession(configuration: .default)
+        let task = session.webSocketTask(with: url)
+        self.webSocketTask = task
+        task.resume()
+
+        // Start listening looping mechanism for incoming frames
+        Task {
+            await listenForWebSocketMessages()
+        }
+    }
+
+    /// Safely terminates the active WebSocket connection
+    func disconnectWebSocket() {
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        print("🛑 WebSocket Connection Closed")
+    }
+
+    /// Continuously listens for incoming real-time text updates
+    private func listenForWebSocketMessages() async {
+        guard let task = webSocketTask else { return }
+
+        do {
+            let receivedFrame = try await task.receive()
+            
+            switch receivedFrame {
+            case .string(let textFrameContent):
+                if let data = textFrameContent.data(using: .utf8) {
+                    parseAndAppendIncomingMessage(data)
+                }
+            case .data(let rawDataFrameContent):
+                parseAndAppendIncomingMessage(rawDataFrameContent)
+            @unknown default:
+                break
+            }
+
+            // Immediately loop back to keep listening for the next incoming payload
+            await listenForWebSocketMessages()
+        } catch {
+            print("❌ WebSocket tracking error occurred: \(error.localizedDescription)")
+            // Connection drops out? Handle reconnect attempts here if needed
+        }
+    }
+
+    /// Safely decodes text payloads to append to the active message state array
+    private func parseAndAppendIncomingMessage(_ data: Data) {
+        do {
+            let incomingMsg = try JSONDecoder().decode(RoomMessage.self, from: data)
+            // Ensure UI updates stay isolated safely onto the Main Thread
+            self.messages.append(incomingMsg)
+        } catch {
+            // Fallback to print the actual string token starting with 'Y' if decoding fails
+            if let rawString = String(data: data, encoding: .utf8) {
+                print("⚠️ Server sent a non-JSON payload: \"\(rawString)\"")
+            }
+            print("⚠️ Failed to parse incoming socket event payload: \(error)")
+        }
+    }
+
+    /// Transmits messages natively over the WebSocket connection
+    func sendRealtimeMessage(text: String) {
+        guard let task = webSocketTask, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        
+        // Adjust the outgoing object layout if your server requires full JSON shapes instead of plain text strings
+        let framePayload = URLSessionWebSocketTask.Message.string(text)
+        
+        Task {
+            do {
+                try await task.send(framePayload)
+            } catch {
+                print("❌ Failed transmitting data frame over stream: \(error)")
+            }
+        }
+    }
 }
 
 // MARK: - View
@@ -65,6 +163,9 @@ struct GroupChatView: View {
     @State private var messageText = ""
     @State private var showGroupInfo = false
 
+    // Pull the active phone number setup directly out from your local AppStorage cache
+    @AppStorage("profilePhone") private var userPhone = ""
+
     var body: some View {
         VStack(spacing: 0) {
             topNavigationBar
@@ -72,48 +173,58 @@ struct GroupChatView: View {
             Divider()
                 .overlay(Color.white.opacity(0.1))
 
-            ScrollView {
-                VStack(spacing: 24) {
-                    Text("Group Space created · plan your outing here")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.6))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Capsule())
-                        .padding(.top, 20)
-                    
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .tint(.white)
-                            .padding(.top, 40)
-                    } else if let error = viewModel.errorMessage {
-                        Text(error)
-                            .font(.system(size: 14))
-                            .foregroundStyle(.red.opacity(0.8))
-                            .padding(.top, 40)
-                    } else {
-                        // Display fetched messages
-                        ForEach(viewModel.messages) { message in
-                            let senderDetails = getSenderDetails(for: message.sender_id)
-                            
-                            userMessageRow(
-                                initials: senderDetails.initials,
-                                name: senderDetails.name,
-                                avatarColor: senderDetails.color,
-                                content: Text(message.content)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(Color.white.opacity(0.08))
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
-                            )
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 24) {
+                        Text("Group Space created · plan your outing here")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.6))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Capsule())
+                            .padding(.top, 20)
+                        
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .tint(.white)
+                                .padding(.top, 40)
+                        } else if let error = viewModel.errorMessage {
+                            Text(error)
+                                .font(.system(size: 14))
+                                .foregroundStyle(.red.opacity(0.8))
+                                .padding(.top, 40)
+                        } else {
+                            ForEach(viewModel.messages) { message in
+                                let senderDetails = getSenderDetails(for: message.sender_id)
+                                
+                                userMessageRow(
+                                    initials: senderDetails.initials,
+                                    name: senderDetails.name,
+                                    avatarColor: senderDetails.color,
+                                    content: Text(message.content)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                        .background(Color.white.opacity(0.08))
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                )
+                                .id(message.id)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                }
+                .onChange(of: viewModel.messages.count) { _, _ in
+                    // Automatically auto-scroll view downward as new updates arrive
+                    if let lastMessage = viewModel.messages.last {
+                        withAnimation {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
             }
 
             bottomInputBar
@@ -124,8 +235,14 @@ struct GroupChatView: View {
             GroupInfoView(room: room, memberCount: 4)
         }
         .task {
-            // Fetch messages when the view appears
+            // 1. Fetch historical data traces
             await viewModel.fetchMessages(roomId: room.id)
+            // 2. Open up real-time bidirectional messaging pipeline
+            viewModel.connectWebSocket(roomId: room.id, userPhone: userPhone)
+        }
+        .onDisappear {
+            // Clear socket reference allocation cleanly when the screen tears down
+            viewModel.disconnectWebSocket()
         }
     }
 
@@ -206,14 +323,13 @@ struct GroupChatView: View {
     }
     
     // MARK: - Helpers
-    /// Deterministically assigns a color and a generic name based on the `sender_id`.
     private func getSenderDetails(for senderId: Int) -> (name: String, initials: String, color: Color) {
         let colors: [Color] = [
-            Color(red: 0.42, green: 0.20, blue: 0.83), // Purple
-            Color(red: 0.60, green: 0.10, blue: 0.40), // Maroon
-            Color(red: 0.20, green: 0.50, blue: 0.80), // Blue
-            Color(red: 0.10, green: 0.60, blue: 0.30), // Green
-            Color(red: 0.80, green: 0.40, blue: 0.10)  // Orange
+            Color(red: 0.42, green: 0.20, blue: 0.83),
+            Color(red: 0.60, green: 0.10, blue: 0.40),
+            Color(red: 0.20, green: 0.50, blue: 0.80),
+            Color(red: 0.10, green: 0.60, blue: 0.30),
+            Color(red: 0.80, green: 0.40, blue: 0.10)
         ]
         
         let color = colors[abs(senderId) % colors.count]
@@ -244,7 +360,14 @@ struct GroupChatView: View {
                     .background(Color.white.opacity(0.08))
                     .clipShape(Capsule())
 
-                Button { } label: {
+                Button {
+                    let textToSend = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !textToSend.isEmpty {
+                        // Transmit message data via the websocket lifecycle hook
+                        viewModel.sendRealtimeMessage(text: textToSend)
+                        messageText = ""
+                    }
+                } label: {
                     ZStack {
                         Circle()
                             .fill(Color.white.opacity(0.08))
