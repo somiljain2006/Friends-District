@@ -55,6 +55,7 @@ struct EventDetailView: View {
                                 }
                             }
                             .frame(width: geometry.size.width, height: height)
+                            .clipped()
                             .offset(y: offset)
                         }
                         .frame(height: 400)
