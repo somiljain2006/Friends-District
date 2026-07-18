@@ -25,9 +25,9 @@ struct ContentView: View {
     @State private var isLoadingSections = false
     
     private let categories: [Category] = [
-        .init(title: "Dining", icon: "dining"),
-        .init(title: "Movies", icon: "movies"),
-        .init(title: "Events", icon: "events")
+        .init(title: "Dining", icon: "dining", apiType: "dining"),
+        .init(title: "Movies", icon: "movies", apiType: "movie"),
+        .init(title: "Events", icon: "events", apiType: "concert")
     ]
     
     private let gridColumns = [
@@ -54,13 +54,8 @@ struct ContentView: View {
                             
                             LazyVGrid(columns: gridColumns, spacing: 16) {
                                 ForEach(categories) { category in
-                                    // 2. Wrap the CategoryCard in a Button
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.5)) {
-                                            // Scroll to the exact title of the category
-                                            proxy.scrollTo(category.title, anchor: .top)
-                                        }
-                                    } label: {
+                                    // 2. Wrap the CategoryCard in a NavigationLink
+                                    NavigationLink(destination: CategoryListView(category: category)) {
                                         CategoryCard(category: category)
                                     }
                                     .buttonStyle(.plain)
@@ -232,7 +227,6 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
-                CircleIconButton(systemName: "bookmark")
 
                 Button {
                     showProfile = true
@@ -348,6 +342,7 @@ struct Category: Identifiable {
     let id = UUID()
     let title: String
     let icon: String
+    let apiType: String
 }
 
 struct SpotlightItem: Identifiable, Hashable, Codable {
@@ -437,14 +432,7 @@ struct SpotlightCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 10)
                 
-                // Badges overlay
-                HStack(alignment: .top) {
-                    Spacer()
-                    
-                    CircleIconButton(systemName: "bookmark")
-                        .frame(width: 40, height: 40)
-                }
-                .padding(16)
+
             }
             
             // Text Content Below Image
