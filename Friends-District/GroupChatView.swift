@@ -376,7 +376,11 @@ struct GroupChatView: View {
 
         let finalInitials = initials.isEmpty ? "U\(message.sender_id)" : String(initials)
         
-        let isMe = (message.sender?.mobile_number == userPhone)
+        let cleanSenderPhone = message.sender?.mobile_number.components(separatedBy: CharacterSet.decimalDigits.inverted).joined() ?? ""
+        let cleanUserPhone = userPhone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+        
+        // Handle cases where one phone number includes a country code and the other does not
+        let isMe = !cleanSenderPhone.isEmpty && !cleanUserPhone.isEmpty && (cleanSenderPhone.hasSuffix(cleanUserPhone) || cleanUserPhone.hasSuffix(cleanSenderPhone))
         
         return (name, finalInitials, color, isMe)
     }
