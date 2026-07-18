@@ -508,7 +508,7 @@ struct AddFriendView: View {
                     switch httpResponse.statusCode {
                     case 201:
                         requestStatus = .success
-                        await fetchRequests()
+                        Task { await fetchRequests() }
                     case 400:
                         requestStatus = .error("Invalid request or already friends.")
                     case 404:
