@@ -11,7 +11,7 @@ struct AddFriendView: View {
     @Environment(\.dismiss) private var dismiss
     
     // Grab the stored phone from ProfileSetupView or Login
-    @AppStorage("profilePhone") private var storedPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     
     enum SearchMode: String, CaseIterable {
         case phone = "Phone Number"
@@ -324,7 +324,7 @@ struct AddFriendView: View {
             // Reject Button
             Button {
                 Task {
-                    await rejectFriendRequest(friendPhone: request.mobile_number)
+                    await rejectFriendRequest(friendUsername: request.mobile_number)
                 }
             } label: {
                 ZStack {
@@ -346,7 +346,7 @@ struct AddFriendView: View {
             // Accept Button
             Button {
                 Task {
-                    await acceptFriendRequest(friendPhone: request.mobile_number)
+                    await acceptFriendRequest(friendUsername: request.mobile_number)
                 }
             } label: {
                 ZStack {
@@ -492,8 +492,8 @@ struct AddFriendView: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: String] = [
-            "user_phone": storedPhone,
-            "friend_phone": phoneNumber
+            "username": storedUsername,
+            "friend_username": phoneNumber
         ]
         
         do {
@@ -529,12 +529,12 @@ struct AddFriendView: View {
     }
     
     // Accept Friend Request API Call
-    private func acceptFriendRequest(friendPhone: String) async {
+    private func acceptFriendRequest(friendUsername: String) async {
         requestsError = nil
-        acceptingPhones.insert(friendPhone)
+        acceptingPhones.insert(friendUsername)
         
         guard let url = URL(string: "https://district.monu14.me/api/v1/friends/accept") else {
-            acceptingPhones.remove(friendPhone)
+            acceptingPhones.remove(friendUsername)
             return
         }
         
@@ -543,8 +543,8 @@ struct AddFriendView: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: String] = [
-            "user_phone": storedPhone,
-            "friend_phone": friendPhone
+            "username": storedUsername,
+            "friend_username": friendUsername
         ]
         
         do {
@@ -552,14 +552,14 @@ struct AddFriendView: View {
             let (_, response) = try await URLSession.shared.data(for: request)
             
             await MainActor.run {
-                acceptingPhones.remove(friendPhone)
+                acceptingPhones.remove(friendUsername)
                 
                 if let httpResponse = response as? HTTPURLResponse {
                     switch httpResponse.statusCode {
                     case 200:
                         // On success, we remove the user from the UI list
                         withAnimation {
-                            receivedRequests.removeAll { $0.mobile_number == friendPhone }
+                            receivedRequests.removeAll { $0.mobile_number == friendUsername }
                         }
                     case 400:
                         requestsError = "Invalid request parameters."
@@ -576,18 +576,18 @@ struct AddFriendView: View {
             }
         } catch {
             await MainActor.run {
-                acceptingPhones.remove(friendPhone)
+                acceptingPhones.remove(friendUsername)
                 requestsError = "Network error: \(error.localizedDescription)"
             }
         }
     }
 
-    private func rejectFriendRequest(friendPhone: String) async {
+    private func rejectFriendRequest(friendUsername: String) async {
         requestsError = nil
-        rejectingPhones.insert(friendPhone)
+        rejectingPhones.insert(friendUsername)
         
         guard let url = URL(string: "https://district.monu14.me/api/v1/friends/reject") else {
-            rejectingPhones.remove(friendPhone)
+            rejectingPhones.remove(friendUsername)
             return
         }
         
@@ -596,8 +596,8 @@ struct AddFriendView: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: String] = [
-            "user_phone": storedPhone,
-            "friend_phone": friendPhone
+            "username": storedUsername,
+            "friend_username": friendUsername
         ]
         
         do {
@@ -605,11 +605,11 @@ struct AddFriendView: View {
             let (_, response) = try await URLSession.shared.data(for: request)
             
             await MainActor.run {
-                rejectingPhones.remove(friendPhone)
+                rejectingPhones.remove(friendUsername)
                 
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     withAnimation {
-                        receivedRequests.removeAll { $0.mobile_number == friendPhone }
+                        receivedRequests.removeAll { $0.mobile_number == friendUsername }
                     }
                 } else {
                     requestsError = "Failed to reject. Please try again."
@@ -617,7 +617,7 @@ struct AddFriendView: View {
             }
         } catch {
             await MainActor.run {
-                rejectingPhones.remove(friendPhone)
+                rejectingPhones.remove(friendUsername)
                 requestsError = "Network error: \(error.localizedDescription)"
             }
         }
@@ -627,14 +627,14 @@ struct AddFriendView: View {
         isLoadingRequests = true
         requestsError = nil
         
-        let cleanPhone = storedPhone.replacingOccurrences(of: " ", with: "")
-        guard let encodedPhone = cleanPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+        let cleanPhone = storedUsername.replacingOccurrences(of: " ", with: "")
+        guard let encodedUsername = cleanPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             isLoadingRequests = false
             return
         }
         
-        async let receivedRes = fetchRequestList(endpoint: "received", phone: encodedPhone)
-        async let sentRes = fetchRequestList(endpoint: "sent", phone: encodedPhone)
+        async let receivedRes = fetchRequestList(endpoint: "received", phone: encodedUsername)
+        async let sentRes = fetchRequestList(endpoint: "sent", phone: encodedUsername)
         
         do {
             let (rData, sData) = try await (receivedRes, sentRes)
@@ -652,7 +652,7 @@ struct AddFriendView: View {
     }
     
     private func fetchRequestList(endpoint: String, phone: String) async throws -> [FriendModel] {
-        guard let url = URL(string: "https://district.monu14.me/api/v1/friends/requests/\(endpoint)?user_phone=\(phone)") else {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/friends/requests/\(endpoint)?username=\(phone)") else {
             throw URLError(.badURL)
         }
         

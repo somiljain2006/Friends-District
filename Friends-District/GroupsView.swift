@@ -12,7 +12,7 @@ struct GroupsView: View {
     @Environment(\.dismiss) private var dismiss
     
     // Grab the stored phone from ProfileSetupView
-    @AppStorage("profilePhone") private var storedPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     
     @State private var rooms: [Room] = []
     @State private var pendingInvites: [Room] = []
@@ -246,7 +246,7 @@ struct GroupsView: View {
     
     private func fetchRooms() async {
         guard var components = URLComponents(string: "https://district.monu14.me/api/v1/rooms") else { return }
-        components.queryItems = [URLQueryItem(name: "user_phone", value: storedPhone)]
+        components.queryItems = [URLQueryItem(name: "username", value: storedUsername)]
         guard let url = components.url else { return }
         
         do {
@@ -265,7 +265,7 @@ struct GroupsView: View {
     
     private func fetchPendingInvites() async {
         guard var components = URLComponents(string: "https://district.monu14.me/api/v1/rooms/invites") else { return }
-        components.queryItems = [URLQueryItem(name: "user_phone", value: storedPhone)]
+        components.queryItems = [URLQueryItem(name: "username", value: storedUsername)]
         guard let url = components.url else { return }
         
         do {
@@ -284,7 +284,7 @@ struct GroupsView: View {
     private func acceptInvite(for room: Room) async {
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(room.id)/accept") else { return }
         
-        let payload = ["user_phone": storedPhone]
+        let payload = ["username": storedUsername]
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -308,7 +308,7 @@ struct GroupsView: View {
     private func rejectInvite(for room: Room) async {
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(room.id)/reject") else { return }
         
-        let payload = ["user_phone": storedPhone]
+        let payload = ["username": storedUsername]
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -333,7 +333,7 @@ struct GroupsView: View {
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms") else { return }
         
         isCreating = true
-        let payload = CreateRoomPayload(name: name, user_phone: storedPhone)
+        let payload = CreateRoomPayload(name: name, username: storedUsername)
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -384,7 +384,7 @@ struct Room: Identifiable, Codable, Hashable {
 
 struct CreateRoomPayload: Codable {
     let name: String
-    let user_phone: String
+    let username: String
 }
 
 // MARK: - Subviews

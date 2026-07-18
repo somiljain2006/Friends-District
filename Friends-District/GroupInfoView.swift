@@ -12,13 +12,13 @@ struct GroupInfoView: View {
     let memberCount: Int
 
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("profilePhone") private var storedPhone = "" // Needed for inviter_phone
+    @AppStorage("profileUsername") private var storedUsername = "" // Needed for inviter_username
 
     // MARK: - API States
     @State private var members: [GroupMember] = []
     @State private var isLoadingMembers = false
     @State private var showInviteAlert = false
-    @State private var inviteePhone = ""
+    @State private var inviteeUsername = ""
     @State private var isInviting = false
     @State private var inviteMessage: String?
     @State private var showStatusAlert = false
@@ -68,7 +68,7 @@ struct GroupInfoView: View {
                                 
                                 // "Add members" Pill Button
                                 Button {
-                                    inviteePhone = ""
+                                    inviteeUsername = ""
                                     showInviteAlert = true
                                 } label: {
                                     HStack(spacing: 6) {
@@ -139,7 +139,7 @@ struct GroupInfoView: View {
             await fetchRoomMembers()
         }
         .alert("Invite Member", isPresented: $showInviteAlert) {
-            TextField("Enter phone number", text: $inviteePhone)
+            TextField("Enter phone number", text: $inviteeUsername)
                 .keyboardType(.phonePad)
             Button("Cancel", role: .cancel) { }
             Button("Invite") {
@@ -201,7 +201,7 @@ struct GroupInfoView: View {
             
             // Map backend models into local display structures
             self.members = networkMembers.map { member in
-                let isMe = (member.mobile_number == storedPhone)
+                let isMe = (member.mobile_number == storedUsername)
                 
                 // Parse initials from their display name safely
                 let cleanInitials = member.name
@@ -237,13 +237,13 @@ struct GroupInfoView: View {
     }
     
     private func inviteUser() async {
-        let trimmedPhone = inviteePhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPhone = inviteeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPhone.isEmpty else { return }
 
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(room.id)/invite") else { return }
         
         isInviting = true
-        let payload = InvitePayload(invitee_phone: trimmedPhone, inviter_phone: storedPhone)
+        let payload = InvitePayload(invitee_username: trimmedPhone, inviter_username: storedUsername)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -280,8 +280,8 @@ struct GroupInfoView: View {
 
 // MARK: - Models
 struct InvitePayload: Codable {
-    let invitee_phone: String
-    let inviter_phone: String
+    let invitee_username: String
+    let inviter_username: String
 }
 
 struct APIMember: Codable {

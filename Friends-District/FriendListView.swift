@@ -52,7 +52,7 @@ struct FriendListView: View {
     @Environment(\.dismiss) private var dismiss
     
     // Pull the logged-in user's phone from AppStorage to use in the API request
-    @AppStorage("profilePhone") private var storedPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     
     // States
     @State private var friends: [FriendModel] = []
@@ -161,11 +161,11 @@ struct FriendListView: View {
         errorMessage = nil
         
         // Clean up stored phone: remove spaces added in ProfileSetupView (e.g., "+91 9999999999" -> "+919999999999")
-        let cleanPhone = storedPhone.replacingOccurrences(of: " ", with: "")
+        let cleanPhone = storedUsername.replacingOccurrences(of: " ", with: "")
         
         // Ensure the phone number is correctly URL encoded (converting `+` to `%2B`)
-        guard let encodedPhone = cleanPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://district.monu14.me/api/v1/friends?user_phone=\(encodedPhone)") else {
+        guard let encodedUsername = cleanPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://district.monu14.me/api/v1/friends?username=\(encodedUsername)") else {
             errorMessage = "Invalid API URL setup."
             isLoading = false
             return

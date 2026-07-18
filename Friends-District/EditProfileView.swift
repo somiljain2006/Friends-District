@@ -13,7 +13,7 @@ struct EditProfileView: View {
     
     // MARK: - Local Storage
     @AppStorage("profileName") private var storedName = ""
-    @AppStorage("profilePhone") private var storedPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profileEmail") private var storedEmail = ""
     @AppStorage("profileBirthday") private var storedBirthday = ""
     @AppStorage("profileImageData") private var storedImageData: Data = Data()
@@ -63,7 +63,7 @@ struct EditProfileView: View {
         .onAppear {
             // Load existing stored data into the form
             name = storedName
-            phone = storedPhone
+            phone = storedUsername
             email = storedEmail
             birthday = storedBirthday
             
@@ -273,7 +273,7 @@ struct EditProfileView: View {
     
     private func saveProfile() {
         storedName = name
-        storedPhone = phone
+        storedUsername = phone
         storedEmail = email
         storedBirthday = birthday
         if let selectedImageData {

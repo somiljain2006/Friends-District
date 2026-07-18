@@ -9,7 +9,7 @@ import SwiftUI
 
 struct EventDetailView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("profilePhone") private var storedPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     
     let item: SpotlightItem
     var roomId: Int? = nil
@@ -182,7 +182,7 @@ struct EventDetailView: View {
                             if roomId != nil {
                                 showBookingSheet = true
                             } else {
-                                Task { await bookTicket(for: storedPhone) }
+                                Task { await bookTicket(for: storedUsername) }
                             }
                         } label: {
                             HStack {
@@ -301,7 +301,7 @@ struct EventDetailView: View {
     private func fetchRooms() async {
         guard rooms.isEmpty else { return }
         isLoadingRooms = true
-        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms?user_phone=\(storedPhone)") else { return }
+        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms?username=\(storedUsername)") else { return }
         
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
@@ -323,7 +323,7 @@ struct EventDetailView: View {
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(roomId)/share") else { return }
         
         let payload = [
-            "user_phone": storedPhone,
+            "username": storedUsername,
             "external_event_id": item.id,
             "external_event_type": item.type ?? "event",
             "external_event_name": item.title,
@@ -361,8 +361,8 @@ struct EventDetailView: View {
         guard let url = URL(string: "https://district.monu14.me/api/v1/bookings") else { return false }
         
         let payload: [String: Any] = [
-            "user_phone": storedPhone,
-            "booked_for_phone": phone,
+            "username": storedUsername,
+            "booked_for_username": phone,
             "external_event_id": item.id,
             "external_event_type": item.type ?? "event",
             "quantity": 1,
@@ -418,7 +418,7 @@ struct EventDetailView: View {
             await MainActor.run {
                 self.roomMembers = members
                 // Pre-select current user if found
-                if let me = members.first(where: { $0.mobile_number.hasSuffix(self.storedPhone) || self.storedPhone.hasSuffix($0.mobile_number) }) {
+                if let me = members.first(where: { $0.mobile_number.hasSuffix(self.storedUsername) || self.storedUsername.hasSuffix($0.mobile_number) }) {
                     self.selectedMembers.insert(me.mobile_number)
                 }
             }

@@ -16,7 +16,7 @@ struct ProfileView: View {
     @AppStorage("hasCompletedProfile") private var hasCompletedProfile = false
     @AppStorage("profileName") private var storedName = ""
     @AppStorage("profileUsername") private var storedUsername = ""
-    @AppStorage("profilePhone") private var storedPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profileEmail") private var storedEmail = ""
     @AppStorage("profileBirthday") private var storedBirthday = ""
     @AppStorage("profileImageData") private var storedImageData: Data = Data()
@@ -28,7 +28,7 @@ struct ProfileView: View {
     private var stepsDone: Int {
         var count = 0
         if !storedName.trimmingCharacters(in: .whitespaces).isEmpty { count += 1 }
-        if !storedPhone.trimmingCharacters(in: .whitespaces).isEmpty { count += 1 }
+        if !storedUsername.trimmingCharacters(in: .whitespaces).isEmpty { count += 1 }
         if !storedEmail.trimmingCharacters(in: .whitespaces).isEmpty { count += 1 }
         if !storedBirthday.trimmingCharacters(in: .whitespaces).isEmpty { count += 1 }
         return count
@@ -229,7 +229,7 @@ struct ProfileView: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(.white)
                     
-                    Text(storedPhone.isEmpty ? "No Phone Provided" : storedPhone)
+                    Text(storedUsername.isEmpty ? "No Phone Provided" : storedUsername)
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.white.opacity(0.5))
                     
@@ -331,7 +331,7 @@ struct ProfileView: View {
         hasCompletedProfile = false
         storedName = ""
         storedUsername = ""
-        storedPhone = ""
+        storedUsername = ""
         storedEmail = ""
         storedBirthday = ""
         storedImageData = Data()

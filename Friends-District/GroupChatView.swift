@@ -98,14 +98,14 @@ class GroupChatViewModel: ObservableObject {
     }
 
     /// Establishes the real-time WebSocket connection
-    func connectWebSocket(roomId: Int, userPhone: String) {
+    func connectWebSocket(roomId: Int, storedUsername: String) {
         // Close existing connections to prevent duplicate sockets
         disconnectWebSocket()
 
         // Manually percent-encode '+' to '%2B' because URLComponents ignores it.
-        let encodedPhone = userPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?.replacingOccurrences(of: "+", with: "%2B") ?? userPhone
+        let encodedUsername = storedUsername.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?.replacingOccurrences(of: "+", with: "%2B") ?? storedUsername
         
-        guard let url = URL(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws?user_phone=\(encodedPhone)") else {
+        guard let url = URL(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws?username=\(encodedUsername)") else {
             print("❌ Invalid WebSocket URL Configuration")
             return
         }
@@ -123,11 +123,11 @@ class GroupChatViewModel: ObservableObject {
         }
     }
 
-    func voteOnEvent(messageId: Int, userPhone: String, vote: String) async {
+    func voteOnEvent(messageId: Int, storedUsername: String, vote: String) async {
         guard let url = URL(string: "https://district.monu14.me/api/v1/messages/\(messageId)/vote") else { return }
         
         let payload = [
-            "user_phone": userPhone,
+            "username": storedUsername,
             "vote": vote
         ]
         
@@ -228,7 +228,7 @@ struct GroupChatView: View {
     @State private var selectedEventMessage: RoomMessage? = nil
 
     // Pull the active setup directly out from your local AppStorage cache
-    @AppStorage("profilePhone") private var userPhone = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profileUsername") private var userUsername = ""
 
     var body: some View {
@@ -273,7 +273,7 @@ struct GroupChatView: View {
                                         content: EventMessageCard(
                                             message: message,
                                             viewModel: viewModel,
-                                            userPhone: userPhone,
+                                            storedUsername: storedUsername,
                                             onTap: {
                                                 selectedEventMessage = message
                                             }
@@ -341,7 +341,7 @@ struct GroupChatView: View {
             // 2. Fetch dynamic member count
             await viewModel.fetchMemberCount(roomId: room.id)
             // 3. Open up real-time bidirectional messaging pipeline
-            viewModel.connectWebSocket(roomId: room.id, userPhone: userPhone)
+            viewModel.connectWebSocket(roomId: room.id, storedUsername: storedUsername)
         }
         .onDisappear {
             // Clear socket reference allocation cleanly when the screen tears down
@@ -454,7 +454,7 @@ struct GroupChatView: View {
         let finalInitials = initials.isEmpty ? "U\(message.sender_id)" : String(initials)
         
         let cleanSenderPhone = message.sender?.mobile_number.components(separatedBy: CharacterSet.decimalDigits.inverted).joined() ?? ""
-        let cleanUserPhone = userPhone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+        let cleanUserPhone = storedUsername.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
         
         // Handle cases where one phone number includes a country code and the other does not
         let phoneMatches = !cleanSenderPhone.isEmpty && !cleanUserPhone.isEmpty && (cleanSenderPhone.hasSuffix(cleanUserPhone) || cleanUserPhone.hasSuffix(cleanSenderPhone))
@@ -519,7 +519,7 @@ struct GroupChatView: View {
 struct EventMessageCard: View {
     let message: RoomMessage
     let viewModel: GroupChatViewModel
-    let userPhone: String
+    let storedUsername: String
     let onTap: () -> Void
     
     var body: some View {
@@ -579,7 +579,7 @@ struct EventMessageCard: View {
         
         Button {
             Task {
-                await viewModel.voteOnEvent(messageId: message.id, userPhone: userPhone, vote: voteKey)
+                await viewModel.voteOnEvent(messageId: message.id, storedUsername: storedUsername, vote: voteKey)
             }
         } label: {
             HStack(spacing: 4) {
