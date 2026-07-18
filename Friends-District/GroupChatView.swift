@@ -8,6 +8,13 @@ import SwiftUI
 internal import Combine
 
 // MARK: - Models
+struct MessageSender: Codable {
+    let id: Int
+    let name: String
+    let username: String
+    let mobile_number: String
+}
+
 struct RoomMessage: Codable, Identifiable {
     let id: Int
     let content: String
@@ -16,6 +23,7 @@ struct RoomMessage: Codable, Identifiable {
     let external_event_type: String?
     let room_id: Int
     let sender_id: Int
+    let sender: MessageSender?
 }
 
 // MARK: - View Model
@@ -24,6 +32,7 @@ class GroupChatViewModel: ObservableObject {
     @Published var messages: [RoomMessage] = []
     @Published var isLoading = true
     @Published var errorMessage: String? = nil
+    @Published var memberCount: Int = 1
 
     // WebSocket Task reference
     private var webSocketTask: URLSessionWebSocketTask?
@@ -58,21 +67,35 @@ class GroupChatViewModel: ObservableObject {
         isLoading = false
     }
 
+    /// Fetches the dynamic member count for this room
+    func fetchMemberCount(roomId: Int) async {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(roomId)/members") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                struct DummyMember: Decodable {}
+                let members = try JSONDecoder().decode([DummyMember].self, from: data)
+                self.memberCount = members.count
+            }
+        } catch {
+            print("Failed to fetch member count: \(error)")
+        }
+    }
+
     /// Establishes the real-time WebSocket connection
     func connectWebSocket(roomId: Int, userPhone: String) {
         // Close existing connections to prevent duplicate sockets
         disconnectWebSocket()
 
-        // Use URLComponents to guarantee proper percent-encoding of special characters like '+'
-        guard var components = URLComponents(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws") else {
-            print("❌ Invalid WebSocket URL Base Configuration")
-            return
-        }
+        // Manually percent-encode '+' to '%2B' because URLComponents ignores it.
+        let encodedPhone = userPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?.replacingOccurrences(of: "+", with: "%2B") ?? userPhone
         
-        components.scheme = "wss" // Swap the scheme out for secure websockets
-        components.queryItems = [URLQueryItem(name: "user_phone", value: userPhone)]
-
-        guard let url = components.url else {
+        guard let url = URL(string: "wss://district.monu14.me/api/v1/rooms/\(roomId)/ws?user_phone=\(encodedPhone)") else {
             print("❌ Invalid WebSocket URL Configuration")
             return
         }
@@ -196,18 +219,19 @@ struct GroupChatView: View {
                                 .padding(.top, 40)
                         } else {
                             ForEach(viewModel.messages) { message in
-                                let senderDetails = getSenderDetails(for: message.sender_id)
+                                let senderDetails = getSenderDetails(for: message)
                                 
                                 userMessageRow(
                                     initials: senderDetails.initials,
                                     name: senderDetails.name,
                                     avatarColor: senderDetails.color,
+                                    isMe: senderDetails.isMe,
                                     content: Text(message.content)
                                         .font(.system(size: 16))
                                         .foregroundStyle(.white)
                                         .padding(.horizontal, 16)
                                         .padding(.vertical, 12)
-                                        .background(Color.white.opacity(0.08))
+                                        .background(senderDetails.isMe ? Color(red: 0.52, green: 0.22, blue: 0.95) : Color.white.opacity(0.08))
                                         .clipShape(RoundedRectangle(cornerRadius: 18))
                                 )
                                 .id(message.id)
@@ -232,12 +256,14 @@ struct GroupChatView: View {
         .background(Color(red: 0.08, green: 0.08, blue: 0.09).ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .navigationDestination(isPresented: $showGroupInfo) {
-            GroupInfoView(room: room, memberCount: 4)
+            GroupInfoView(room: room, memberCount: viewModel.memberCount)
         }
         .task {
             // 1. Fetch historical data traces
             await viewModel.fetchMessages(roomId: room.id)
-            // 2. Open up real-time bidirectional messaging pipeline
+            // 2. Fetch dynamic member count
+            await viewModel.fetchMemberCount(roomId: room.id)
+            // 3. Open up real-time bidirectional messaging pipeline
             viewModel.connectWebSocket(roomId: room.id, userPhone: userPhone)
         }
         .onDisappear {
@@ -270,7 +296,7 @@ struct GroupChatView: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(.white)
 
-                Text("4 members · Group Space")
+                Text("\(viewModel.memberCount) members · Group Space")
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(.white.opacity(0.6))
             }
@@ -298,32 +324,36 @@ struct GroupChatView: View {
         .padding(.vertical, 12)
     }
 
-    private func userMessageRow(initials: String, name: String, avatarColor: Color, content: some View) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(name)
+    private func userMessageRow(initials: String, name: String, avatarColor: Color, isMe: Bool, content: some View) -> some View {
+        VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
+            Text(isMe ? "You" : name)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white.opacity(0.5))
-                .padding(.leading, 50)
+                .padding(isMe ? .trailing : .leading, isMe ? 12 : 50)
 
             HStack(alignment: .bottom, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(avatarColor)
-                        .frame(width: 30, height: 30)
+                if isMe {
+                    Spacer()
+                    content
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(avatarColor)
+                            .frame(width: 30, height: 30)
 
-                    Text(initials)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
+                        Text(initials)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                    content
+                    Spacer()
                 }
-
-                content
-                Spacer()
             }
         }
     }
     
     // MARK: - Helpers
-    private func getSenderDetails(for senderId: Int) -> (name: String, initials: String, color: Color) {
+    private func getSenderDetails(for message: RoomMessage) -> (name: String, initials: String, color: Color, isMe: Bool) {
         let colors: [Color] = [
             Color(red: 0.42, green: 0.20, blue: 0.83),
             Color(red: 0.60, green: 0.10, blue: 0.40),
@@ -332,8 +362,23 @@ struct GroupChatView: View {
             Color(red: 0.80, green: 0.40, blue: 0.10)
         ]
         
-        let color = colors[abs(senderId) % colors.count]
-        return ("User \(senderId)", "U\(senderId)", color)
+        let color = colors[abs(message.sender_id) % colors.count]
+        
+        let name = message.sender?.name ?? "User \(message.sender_id)"
+        
+        let initials = name
+            .components(separatedBy: .whitespaces)
+            .compactMap { $0.first }
+            .map { String($0) }
+            .joined()
+            .prefix(2)
+            .uppercased()
+
+        let finalInitials = initials.isEmpty ? "U\(message.sender_id)" : String(initials)
+        
+        let isMe = (message.sender?.mobile_number == userPhone)
+        
+        return (name, finalInitials, color, isMe)
     }
 
     private var bottomInputBar: some View {
