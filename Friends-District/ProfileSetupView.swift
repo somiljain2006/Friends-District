@@ -8,16 +8,26 @@
 import SwiftUI
 import PhotosUI
 
+// MARK: - API Models
+struct ProfilePayload: Codable {
+    let email: String
+    let mobile_number: String
+    let name: String
+    let username: String
+}
+
 struct ProfileSetupView: View {
     @AppStorage("hasCompletedProfile") private var hasCompletedProfile = false
     
     @AppStorage("profileName") private var storedName = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profilePhone") private var storedPhone = ""
     @AppStorage("profileEmail") private var storedEmail = ""
     @AppStorage("profileBirthday") private var storedBirthday = ""
     @AppStorage("profileImageData") private var storedImageData: Data = Data()
     
     @State private var name = ""
+    @State private var username = ""
     @State private var email = ""
     @State private var phone = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -25,9 +35,17 @@ struct ProfileSetupView: View {
     
     @State private var countryCode = "+91"
     
+    // UI States
+    @State private var isSubmitting = false
+    @State private var errorMessage: String? = nil
+    @State private var showError = false
+    
+    // Validates that mandatory fields are filled (Image is now optional)
     private var canCreateProfile: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !isSubmitting
     }
     
     var body: some View {
@@ -60,8 +78,6 @@ struct ProfileSetupView: View {
                     
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                         ZStack(alignment: .bottomTrailing) {
-                            
-                            // Center-aligned group for the border and the profile image
                             ZStack {
                                 Circle()
                                     .stroke(style: StrokeStyle(lineWidth: 2, dash: [6, 6]))
@@ -94,7 +110,6 @@ struct ProfileSetupView: View {
                                 }
                             }
                             
-                            // Camera button anchored to the bottom right of the main ZStack
                             Circle()
                                 .fill(Color(red: 0.44, green: 0.24, blue: 0.95))
                                 .frame(width: 54, height: 54)
@@ -103,7 +118,7 @@ struct ProfileSetupView: View {
                                         .font(.system(size: 22, weight: .semibold))
                                         .foregroundStyle(.white)
                                 )
-                                .offset(x: 4, y: 4) // Adjusted offset for a clean overlap
+                                .offset(x: 4, y: 4)
                         }
                     }
                     .buttonStyle(.plain)
@@ -113,7 +128,6 @@ struct ProfileSetupView: View {
                             if let data = try? await newItem.loadTransferable(type: Data.self),
                                let uiImage = UIImage(data: data) {
                                 
-                                // Compress image before saving to UserDefaults
                                 if let compressedData = uiImage.jpegData(compressionQuality: 0.1) {
                                     await MainActor.run {
                                         selectedImage = uiImage
@@ -124,19 +138,28 @@ struct ProfileSetupView: View {
                         }
                     }
                     
-                    Text("Add profile photo")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.78))
+                    HStack(spacing: 4) {
+                        Text("Add profile photo")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.78))
+                    }
                     
                     VStack(alignment: .leading, spacing: 10) {
-                        fieldTitle("Full name")
+                        fieldTitle("Full name", required: true)
                         textFieldRow(
                             icon: "person",
                             placeholder: "Enter your full name",
                             text: $name
                         )
                         
-                        fieldTitle("Email address")
+                        fieldTitle("Username", required: false)
+                        textFieldRow(
+                            icon: "at",
+                            placeholder: "Choose a username (optional)",
+                            text: $username
+                        )
+                        
+                        fieldTitle("Email address", required: true)
                         textFieldRow(
                             icon: "envelope",
                             placeholder: "Enter your email address",
@@ -162,25 +185,34 @@ struct ProfileSetupView: View {
                     .padding(.top, 6)
                     
                     Button {
-                        saveProfile()
+                        Task {
+                            await handleProfileCreation()
+                        }
                     } label: {
-                        Text("Create Profile")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 58)
-                            .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.54, green: 0.28, blue: 0.96),
-                                        Color(red: 0.36, green: 0.23, blue: 0.90)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                        Group {
+                            if isSubmitting {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text("Create Profile")
+                                    .font(.system(size: 20, weight: .bold))
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 58)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.54, green: 0.28, blue: 0.96),
+                                    Color(red: 0.36, green: 0.23, blue: 0.90)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                            .opacity(canCreateProfile ? 1 : 0.45)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        .opacity(canCreateProfile ? 1 : 0.45)
                     }
                     .buttonStyle(.plain)
                     .disabled(!canCreateProfile)
@@ -190,7 +222,14 @@ struct ProfileSetupView: View {
                 .padding(.bottom, 28)
             }
         }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage ?? "An unknown error occurred.")
+        }
     }
+    
+    // MARK: - Subviews
     
     private var phoneRow: some View {
         HStack(spacing: 12) {
@@ -270,8 +309,59 @@ struct ProfileSetupView: View {
         )
     }
     
-    private func saveProfile() {
+    // MARK: - Logic & API Calls
+    
+    private func handleProfileCreation() async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        
+        do {
+            try await submitProfileToAPI()
+            
+            // If successful, save to AppStorage and navigate
+            await MainActor.run {
+                saveProfileLocally()
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        }
+    }
+    
+    private func submitProfileToAPI() async throws {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/profile") else {
+            throw URLError(.badURL)
+        }
+        
+        let formattedPhone = "\(countryCode)\(phone.trimmingCharacters(in: .whitespacesAndNewlines))"
+        let payload = ProfilePayload(
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+            mobile_number: formattedPhone,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            username: username.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(payload)
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        
+        if httpResponse.statusCode != 201 {
+            throw NSError(domain: "APIError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Failed to create profile. Server returned status code: \(httpResponse.statusCode)"])
+        }
+    }
+    
+    private func saveProfileLocally() {
         storedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        storedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
         storedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         storedPhone = "\(countryCode) \(phone.trimmingCharacters(in: .whitespacesAndNewlines))"
         hasCompletedProfile = true

@@ -20,6 +20,7 @@ struct ProfileView: View {
     @AppStorage("profileImageData") private var storedImageData: Data = Data()
     @State private var showAddFriend = false
     @State private var showFriendList = false
+    @State private var showChatWithUs = false
     
     // MARK: - Dynamic Progress Calculation
     private var stepsDone: Int {
@@ -91,7 +92,7 @@ struct ProfileView: View {
                         
                         VStack(spacing: 0) {
                             Button {
-                                // Action for Chat with us
+                                showChatWithUs = true
                             } label: {
                                 actionRowContent(icon: "message", isCustomImage: false, title: "Chat with us")
                             }
@@ -130,6 +131,9 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showFriendList) {
                 FriendListView()
+            }
+            .navigationDestination(isPresented: $showChatWithUs) {
+                ChatWithUsView()
             }
         }
     }
