@@ -10,6 +10,9 @@ import SwiftUI
 struct AddFriendView: View {
     @Environment(\.dismiss) private var dismiss
     
+    // Grab the stored phone from ProfileSetupView or Login
+    @AppStorage("profilePhone") private var storedPhone = ""
+    
     enum SearchMode: String, CaseIterable {
         case phone = "Phone Number"
         case email = "Email Address"
@@ -18,15 +21,21 @@ struct AddFriendView: View {
     @State private var selectedMode: SearchMode = .phone
     @State private var phoneNumber = ""
     @State private var emailAddress = ""
-    @State private var searchText = ""
     
-    private let people: [SuggestedPerson] = [
-        .init(name: "Arjun Sharma", detail: "3 mutual friends", initials: "A", color: Color(red: 0.42, green: 0.20, blue: 0.83), buttonTitle: "Add", buttonStyle: .add),
-        .init(name: "Priya Mehta", detail: "1 mutual friend", initials: "P", color: Color(red: 0.74, green: 0.11, blue: 0.34), buttonTitle: "Add", buttonStyle: .add),
-        .init(name: "Rahul Verma", detail: "5 mutual friends", initials: "R", color: Color(red: 0.14, green: 0.33, blue: 0.87), buttonTitle: "Friends", buttonStyle: .friends),
-        .init(name: "Sneha Kapoor", detail: "2 mutual friends", initials: "S", color: Color(red: 0.05, green: 0.50, blue: 0.36), buttonTitle: "Add", buttonStyle: .add),
-        .init(name: "Vikram Nair", detail: "On District", initials: "V", color: Color(red: 0.72, green: 0.33, blue: 0.06), buttonTitle: "Requested", buttonStyle: .requested)
-    ]
+    // API States (Send Request)
+    @State private var isSending = false
+    @State private var requestStatus: RequestStatus = .idle
+    
+    // API States (Accept Request)
+    @State private var pendingRequests: [String] = []
+    @State private var acceptingPhones: Set<String> = []
+    @State private var acceptError: String? = nil
+    
+    enum RequestStatus {
+        case idle
+        case success
+        case error(String)
+    }
     
     var body: some View {
         ZStack {
@@ -49,45 +58,42 @@ struct AddFriendView: View {
                             text: $phoneNumber,
                             systemImage: "phone.fill"
                         )
+                        .keyboardType(.phonePad)
                     } else {
                         inputField(
                             placeholder: "Enter email address",
                             text: $emailAddress,
                             systemImage: "envelope.fill"
                         )
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
                     }
-                    
-                    searchBar
                     
                     Divider()
                         .overlay(Color.white.opacity(0.12))
-                        .padding(.top, 2)
+                        .padding(.top, 16)
                     
-                    Text("People You May Know")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.top, 6)
-                    
-                    VStack(spacing: 0) {
-                        ForEach(people) { person in
-                            SuggestedPersonRow(person: person)
-                            
-                            if person.id != people.last?.id {
-                                Divider()
-                                    .overlay(Color.white.opacity(0.08))
-                                    .padding(.leading, 72)
-                            }
-                        }
+                    // Dynamic Search Result Block
+                    if selectedMode == .phone && !phoneNumber.isEmpty {
+                        Text("Search Result")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.top, 6)
+                        
+                        searchResultBlock
+                    } else if selectedMode == .email && !emailAddress.isEmpty {
+                        Text("Search Result")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.top, 6)
+                        
+                        Text("Search by email is not supported yet.")
+                            .foregroundStyle(.white.opacity(0.5))
+                            .padding(.top, 8)
                     }
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                            )
-                    )
+                    
+                    // NEW: Pending Friend Requests Section
+                    friendRequestsSection
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 16)
@@ -95,6 +101,10 @@ struct AddFriendView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .onChange(of: phoneNumber) { _ in
+            // Reset status when user types a new number
+            requestStatus = .idle
+        }
     }
     
     private var topBar: some View {
@@ -159,29 +169,6 @@ struct AddFriendView: View {
         )
     }
     
-    private var searchBar: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color(red: 0.10, green: 0.55, blue: 0.95), lineWidth: 2)
-                )
-                .frame(height: 60)
-            
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.55))
-                
-                TextField("Search", text: $searchText)
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(.white)
-            }
-            .padding(.horizontal, 18)
-        }
-    }
-    
     private func inputField(placeholder: String, text: Binding<String>, systemImage: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
@@ -203,45 +190,122 @@ struct AddFriendView: View {
                 )
         )
     }
-}
-
-struct SuggestedPerson: Identifiable {
-    enum ButtonStyleType {
-        case add
-        case friends
-        case requested
+    
+    private var searchResultBlock: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 0.14, green: 0.33, blue: 0.87))
+                        .frame(width: 54, height: 54)
+                    
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(phoneNumber)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.white)
+                    
+                    Text("User on District")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                
+                Spacer()
+                
+                Button {
+                    Task {
+                        await sendFriendRequest()
+                    }
+                } label: {
+                    ZStack {
+                        if isSending {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text(buttonTitle)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(buttonTextColor)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 36)
+                    .background(buttonBackground)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(isSending || isRequested)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            
+            if case .error(let message) = requestStatus {
+                Text(message)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red.opacity(0.8))
+                    .padding(.bottom, 12)
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+        )
     }
     
-    let id = UUID()
-    let name: String
-    let detail: String
-    let initials: String
-    let color: Color
-    let buttonTitle: String
-    let buttonStyle: ButtonStyleType
-}
-
-struct SuggestedPersonRow: View {
-    let person: SuggestedPerson
+    // MARK: - Friend Requests Section (NEW)
     
-    var body: some View {
+    private var friendRequestsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Friend Requests")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.top, 16)
+            
+            if pendingRequests.isEmpty {
+                Text("No pending requests.")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding(.top, 4)
+            } else {
+                ForEach(pendingRequests, id: \.self) { phone in
+                    pendingRequestRow(for: phone)
+                }
+            }
+            
+            if let acceptError = acceptError {
+                Text(acceptError)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red.opacity(0.8))
+                    .padding(.top, 4)
+            }
+        }
+    }
+    
+    private func pendingRequestRow(for phone: String) -> some View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(person.color)
+                    .fill(Color(red: 0.95, green: 0.45, blue: 0.22)) // Distinct color for incoming requests
                     .frame(width: 54, height: 54)
                 
-                Text(person.initials)
-                    .font(.system(size: 22, weight: .bold))
+                Image(systemName: "person.fill.badge.plus")
+                    .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(.white)
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(person.name)
+                Text(phone)
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(.white)
                 
-                Text(person.detail)
+                Text("Sent you a request")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -249,48 +313,175 @@ struct SuggestedPersonRow: View {
             Spacer()
             
             Button {
-                // action for add / friends / requested
+                Task {
+                    await acceptFriendRequest(friendPhone: phone)
+                }
             } label: {
-                Text(person.buttonTitle)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(buttonTextColor)
-                    .padding(.horizontal, 16)
-                    .frame(height: 36)
-                    .background(buttonBackground)
-                    .clipShape(Capsule())
+                ZStack {
+                    if acceptingPhones.contains(phone) {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Accept")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 36)
+                .background(Color(red: 0.16, green: 0.75, blue: 0.36)) // Green color to denote "Accept"
+                .clipShape(Capsule())
             }
             .buttonStyle(.plain)
+            .disabled(acceptingPhones.contains(phone))
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+        )
+    }
+    
+    // MARK: - Button Styling Helpers
+    
+    private var isRequested: Bool {
+        if case .success = requestStatus { return true }
+        return false
+    }
+    
+    private var buttonTitle: String {
+        isRequested ? "Requested" : "Add"
     }
     
     private var buttonTextColor: Color {
-        switch person.buttonStyle {
-        case .add:
-            return .white
-        case .friends:
-            return Color(red: 0.35, green: 0.95, blue: 0.40)
-        case .requested:
-            return Color(red: 0.72, green: 0.45, blue: 0.95)
-        }
+        isRequested ? Color(red: 0.72, green: 0.45, blue: 0.95) : .white
     }
     
     private var buttonBackground: some View {
-        switch person.buttonStyle {
-        case .add:
-            return AnyView(Color(red: 0.52, green: 0.22, blue: 0.95))
-        case .friends:
-            return AnyView(Color(red: 0.07, green: 0.25, blue: 0.07))
-        case .requested:
-            return AnyView(
+        Group {
+            if isRequested {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(Color(red: 0.52, green: 0.22, blue: 0.95), lineWidth: 1)
                     )
-            )
+            } else {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(red: 0.52, green: 0.22, blue: 0.95))
+            }
+        }
+    }
+    
+    // MARK: - API Calls
+    
+    private func sendFriendRequest() async {
+        guard !phoneNumber.isEmpty else { return }
+        
+        isSending = true
+        requestStatus = .idle
+        
+        guard let url = URL(string: "https://district.monu14.me/api/v1/friends/request") else {
+            isSending = false
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: String] = [
+            "user_phone": storedPhone,
+            "friend_phone": phoneNumber
+        ]
+        
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            await MainActor.run {
+                isSending = false
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    switch httpResponse.statusCode {
+                    case 201:
+                        requestStatus = .success
+                    case 400:
+                        requestStatus = .error("Invalid request or already friends.")
+                    case 404:
+                        requestStatus = .error("User not found.")
+                    default:
+                        requestStatus = .error("Server error. Please try again.")
+                    }
+                } else {
+                    requestStatus = .error("Unknown error occurred.")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                isSending = false
+                requestStatus = .error("Network error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    // NEW: Accept Friend Request API Call
+    private func acceptFriendRequest(friendPhone: String) async {
+        acceptError = nil
+        acceptingPhones.insert(friendPhone)
+        
+        guard let url = URL(string: "https://district.monu14.me/api/v1/friends/accept") else {
+            acceptingPhones.remove(friendPhone)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: String] = [
+            "user_phone": storedPhone,
+            "friend_phone": friendPhone
+        ]
+        
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            await MainActor.run {
+                acceptingPhones.remove(friendPhone)
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    switch httpResponse.statusCode {
+                    case 200:
+                        // On success, we remove the user from the UI list
+                        withAnimation {
+                            pendingRequests.removeAll { $0 == friendPhone }
+                        }
+                    case 400:
+                        acceptError = "Invalid request parameters."
+                    case 404:
+                        acceptError = "Friend request not found."
+                    case 500:
+                        acceptError = "Server Error. Please try again later."
+                    default:
+                        acceptError = "Failed to accept. Please try again."
+                    }
+                } else {
+                    acceptError = "Unknown error occurred."
+                }
+            }
+        } catch {
+            await MainActor.run {
+                acceptingPhones.remove(friendPhone)
+                acceptError = "Network error: \(error.localizedDescription)"
+            }
         }
     }
 }
