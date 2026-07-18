@@ -26,10 +26,13 @@ struct AddFriendView: View {
     @State private var isSending = false
     @State private var requestStatus: RequestStatus = .idle
     
-    // API States (Accept Request)
-    @State private var pendingRequests: [String] = []
+    // API States (Requests)
+    @State private var receivedRequests: [FriendModel] = []
+    @State private var sentRequests: [FriendModel] = []
+    @State private var isLoadingRequests = false
     @State private var acceptingPhones: Set<String> = []
-    @State private var acceptError: String? = nil
+    @State private var rejectingPhones: Set<String> = []
+    @State private var requestsError: String? = nil
     
     enum RequestStatus {
         case idle
@@ -92,8 +95,9 @@ struct AddFriendView: View {
                             .padding(.top, 8)
                     }
                     
-                    // NEW: Pending Friend Requests Section
-                    friendRequestsSection
+                    // NEW: Received and Sent Requests Sections
+                    receivedRequestsSection
+                    sentRequestsSection
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 16)
@@ -101,6 +105,9 @@ struct AddFriendView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .task {
+            await fetchRequests()
+        }
         .onChange(of: phoneNumber) { _ in
             // Reset status when user types a new number
             requestStatus = .idle
@@ -259,28 +266,30 @@ struct AddFriendView: View {
         )
     }
     
-    // MARK: - Friend Requests Section (NEW)
+    // MARK: - Received & Sent Requests Sections
     
-    private var friendRequestsSection: some View {
+    private var receivedRequestsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Friend Requests")
+            Text("Received Requests")
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.top, 16)
             
-            if pendingRequests.isEmpty {
-                Text("No pending requests.")
+            if isLoadingRequests {
+                ProgressView().tint(.white).padding(.top, 4)
+            } else if receivedRequests.isEmpty {
+                Text("No pending received requests.")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.white.opacity(0.5))
                     .padding(.top, 4)
             } else {
-                ForEach(pendingRequests, id: \.self) { phone in
-                    pendingRequestRow(for: phone)
+                ForEach(receivedRequests) { request in
+                    receivedRequestRow(for: request)
                 }
             }
             
-            if let acceptError = acceptError {
-                Text(acceptError)
+            if let requestsError = requestsError {
+                Text(requestsError)
                     .font(.system(size: 14))
                     .foregroundStyle(.red.opacity(0.8))
                     .padding(.top, 4)
@@ -288,52 +297,139 @@ struct AddFriendView: View {
         }
     }
     
-    private func pendingRequestRow(for phone: String) -> some View {
+    private func receivedRequestRow(for request: FriendModel) -> some View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(Color(red: 0.95, green: 0.45, blue: 0.22)) // Distinct color for incoming requests
+                    .fill(request.color)
                     .frame(width: 54, height: 54)
                 
-                Image(systemName: "person.fill.badge.plus")
-                    .font(.system(size: 22, weight: .medium))
+                Text(request.initials)
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(.white)
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(phone)
+                Text(request.name)
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(.white)
                 
-                Text("Sent you a request")
+                Text(request.subtitle)
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(.white.opacity(0.5))
             }
             
             Spacer()
             
+            // Reject Button
             Button {
                 Task {
-                    await acceptFriendRequest(friendPhone: phone)
+                    await rejectFriendRequest(friendPhone: request.mobile_number)
                 }
             } label: {
                 ZStack {
-                    if acceptingPhones.contains(phone) {
-                        ProgressView()
-                            .tint(.white)
+                    if rejectingPhones.contains(request.mobile_number) {
+                        ProgressView().tint(.white)
                     } else {
-                        Text("Accept")
-                            .font(.system(size: 16, weight: .semibold))
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
                     }
                 }
-                .padding(.horizontal, 16)
-                .frame(height: 36)
-                .background(Color(red: 0.16, green: 0.75, blue: 0.36)) // Green color to denote "Accept"
-                .clipShape(Capsule())
+                .frame(width: 36, height: 36)
+                .background(Color.white.opacity(0.1))
+                .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .disabled(acceptingPhones.contains(phone))
+            .disabled(rejectingPhones.contains(request.mobile_number) || acceptingPhones.contains(request.mobile_number))
+            
+            // Accept Button
+            Button {
+                Task {
+                    await acceptFriendRequest(friendPhone: request.mobile_number)
+                }
+            } label: {
+                ZStack {
+                    if acceptingPhones.contains(request.mobile_number) {
+                        ProgressView().tint(.white)
+                    } else {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 36, height: 36)
+                .background(Color(red: 0.16, green: 0.75, blue: 0.36))
+                .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(acceptingPhones.contains(request.mobile_number) || rejectingPhones.contains(request.mobile_number))
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+        )
+    }
+
+    private var sentRequestsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Sent Requests")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.top, 16)
+            
+            if !isLoadingRequests && sentRequests.isEmpty {
+                Text("No pending sent requests.")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding(.top, 4)
+            } else {
+                ForEach(sentRequests) { request in
+                    sentRequestRow(for: request)
+                }
+            }
+        }
+    }
+    
+    private func sentRequestRow(for request: FriendModel) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(request.color)
+                    .frame(width: 54, height: 54)
+                
+                Text(request.initials)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(request.name)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.white)
+                
+                Text(request.subtitle)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            
+            Spacer()
+            
+            Text("Pending")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white.opacity(0.6))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
@@ -412,6 +508,7 @@ struct AddFriendView: View {
                     switch httpResponse.statusCode {
                     case 201:
                         requestStatus = .success
+                        Task { await fetchRequests() }
                     case 400:
                         requestStatus = .error("Invalid request or already friends.")
                     case 404:
@@ -431,9 +528,9 @@ struct AddFriendView: View {
         }
     }
     
-    // NEW: Accept Friend Request API Call
+    // Accept Friend Request API Call
     private func acceptFriendRequest(friendPhone: String) async {
-        acceptError = nil
+        requestsError = nil
         acceptingPhones.insert(friendPhone)
         
         guard let url = URL(string: "https://district.monu14.me/api/v1/friends/accept") else {
@@ -462,27 +559,113 @@ struct AddFriendView: View {
                     case 200:
                         // On success, we remove the user from the UI list
                         withAnimation {
-                            pendingRequests.removeAll { $0 == friendPhone }
+                            receivedRequests.removeAll { $0.mobile_number == friendPhone }
                         }
                     case 400:
-                        acceptError = "Invalid request parameters."
+                        requestsError = "Invalid request parameters."
                     case 404:
-                        acceptError = "Friend request not found."
+                        requestsError = "Friend request not found."
                     case 500:
-                        acceptError = "Server Error. Please try again later."
+                        requestsError = "Server Error. Please try again later."
                     default:
-                        acceptError = "Failed to accept. Please try again."
+                        requestsError = "Failed to accept. Please try again."
                     }
                 } else {
-                    acceptError = "Unknown error occurred."
+                    requestsError = "Unknown error occurred."
                 }
             }
         } catch {
             await MainActor.run {
                 acceptingPhones.remove(friendPhone)
-                acceptError = "Network error: \(error.localizedDescription)"
+                requestsError = "Network error: \(error.localizedDescription)"
             }
         }
+    }
+
+    private func rejectFriendRequest(friendPhone: String) async {
+        requestsError = nil
+        rejectingPhones.insert(friendPhone)
+        
+        guard let url = URL(string: "https://district.monu14.me/api/v1/friends/reject") else {
+            rejectingPhones.remove(friendPhone)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: String] = [
+            "user_phone": storedPhone,
+            "friend_phone": friendPhone
+        ]
+        
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            await MainActor.run {
+                rejectingPhones.remove(friendPhone)
+                
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    withAnimation {
+                        receivedRequests.removeAll { $0.mobile_number == friendPhone }
+                    }
+                } else {
+                    requestsError = "Failed to reject. Please try again."
+                }
+            }
+        } catch {
+            await MainActor.run {
+                rejectingPhones.remove(friendPhone)
+                requestsError = "Network error: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func fetchRequests() async {
+        isLoadingRequests = true
+        requestsError = nil
+        
+        let cleanPhone = storedPhone.replacingOccurrences(of: " ", with: "")
+        guard let encodedPhone = cleanPhone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            isLoadingRequests = false
+            return
+        }
+        
+        async let receivedRes = fetchRequestList(endpoint: "received", phone: encodedPhone)
+        async let sentRes = fetchRequestList(endpoint: "sent", phone: encodedPhone)
+        
+        do {
+            let (rData, sData) = try await (receivedRes, sentRes)
+            await MainActor.run {
+                self.receivedRequests = rData
+                self.sentRequests = sData
+                self.isLoadingRequests = false
+            }
+        } catch {
+            await MainActor.run {
+                self.requestsError = "Failed to load requests."
+                self.isLoadingRequests = false
+            }
+        }
+    }
+    
+    private func fetchRequestList(endpoint: String, phone: String) async throws -> [FriendModel] {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/friends/requests/\(endpoint)?user_phone=\(phone)") else {
+            throw URLError(.badURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        return try JSONDecoder().decode([FriendModel].self, from: data)
     }
 }
 

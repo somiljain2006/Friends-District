@@ -13,7 +13,9 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     
     // MARK: - Local Storage
+    @AppStorage("hasCompletedProfile") private var hasCompletedProfile = false
     @AppStorage("profileName") private var storedName = ""
+    @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profilePhone") private var storedPhone = ""
     @AppStorage("profileEmail") private var storedEmail = ""
     @AppStorage("profileBirthday") private var storedBirthday = ""
@@ -108,6 +110,17 @@ struct ProfileView: View {
                                 }
                             } label: {
                                 actionRowContent(icon: "square.and.arrow.up", isCustomImage: false, title: "Share feedback")
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Divider()
+                                .overlay(Color.white.opacity(0.08))
+                                .padding(.horizontal, 20)
+                            
+                            Button {
+                                logout()
+                            } label: {
+                                actionRowContent(icon: "rectangle.portrait.and.arrow.right", isCustomImage: false, title: "Logout", color: .red)
                             }
                             .buttonStyle(.plain)
                         }
@@ -284,34 +297,44 @@ struct ProfileView: View {
             .foregroundStyle(.white)
     }
     
-    private func actionRowContent(icon: String, isCustomImage: Bool = false, title: String) -> some View {
+    private func actionRowContent(icon: String, isCustomImage: Bool = false, title: String, color: Color = .white) -> some View {
         HStack(spacing: 10) {
             if isCustomImage {
                 Image(icon)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 24, height: 24)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(color.opacity(0.6))
             } else {
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(color.opacity(0.6))
                     .frame(width: 24)
             }
             
             Text(title)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(color)
             
             Spacer()
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(color.opacity(0.4))
         }
         .padding(.horizontal, 20)
         .frame(height: 64)
         .contentShape(Rectangle())
+    }
+    
+    private func logout() {
+        hasCompletedProfile = false
+        storedName = ""
+        storedUsername = ""
+        storedPhone = ""
+        storedEmail = ""
+        storedBirthday = ""
+        storedImageData = Data()
     }
 }
 
