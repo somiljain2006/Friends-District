@@ -430,15 +430,21 @@ struct EventDetailView: View {
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-            // Fire and forget the request
-            Task {
-                let _ = try? await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 201 {
+                    return (true, nil)
+                } else {
+                    let decodedResponse = try? JSONDecoder().decode([String: String].self, from: data)
+                    let errorMsg = decodedResponse?["error"] ?? "Failed to book ticket."
+                    return (false, errorMsg)
+                }
             }
-            // Always show booked success
-            return (true, nil)
+            return (false, "Invalid server response.")
         } catch {
-            print("Failed to serialize payload: \(error)")
-            return (true, nil) // Still show success
+            print("Failed to book ticket: \(error)")
+            return (false, "Network error. Please try again.")
         }
     }
     
