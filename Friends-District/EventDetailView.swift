@@ -218,7 +218,7 @@ struct EventDetailView: View {
         .sheet(isPresented: $showBookingSheet) {
             BookingSheet(
                 roomId: roomId,
-                members: roomMembers,
+                members: $roomMembers,
                 selectedMembers: $selectedMembers,
                 includeTime: $includeTime,
                 startTime: $startTime,
@@ -437,20 +437,31 @@ struct EventDetailView: View {
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(roomId)/members") else { return }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            var members = try JSONDecoder().decode([RoomMember].self, from: data)
-            await MainActor.run {
-                if members.isEmpty {
-                    members.append(RoomMember(id: 0, name: "You", mobile_number: self.storedUsername))
+            let (data, response) = try await URLSession.shared.data(from: url)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                var members = (try? JSONDecoder().decode([RoomMember].self, from: data)) ?? []
+                await MainActor.run {
+                    if members.isEmpty {
+                        members.append(RoomMember(id: 0, name: "You", mobile_number: self.storedUsername))
+                    }
+                    self.roomMembers = members
+                    // Pre-select current user if found
+                    if let me = members.first(where: { $0.mobile_number.hasSuffix(self.storedUsername) || self.storedUsername.hasSuffix($0.mobile_number) || $0.name == "You" }) {
+                        self.selectedMembers.insert(me.mobile_number)
+                    }
                 }
-                self.roomMembers = members
-                // Pre-select current user if found
-                if let me = members.first(where: { $0.mobile_number.hasSuffix(self.storedUsername) || self.storedUsername.hasSuffix($0.mobile_number) || $0.name == "You" }) {
-                    self.selectedMembers.insert(me.mobile_number)
+            } else {
+                await MainActor.run {
+                    self.roomMembers = [RoomMember(id: 0, name: "You", mobile_number: self.storedUsername)]
+                    self.selectedMembers.insert(self.storedUsername)
                 }
             }
         } catch {
             print("Failed to fetch room members: \(error)")
+            await MainActor.run {
+                self.roomMembers = [RoomMember(id: 0, name: "You", mobile_number: self.storedUsername)]
+                self.selectedMembers.insert(self.storedUsername)
+            }
         }
     }
     
@@ -502,7 +513,7 @@ struct RoomMember: Codable, Identifiable, Hashable {
 
 struct BookingSheet: View {
     let roomId: Int?
-    let members: [RoomMember]
+    @Binding var members: [RoomMember]
     @Binding var selectedMembers: Set<String>
     
     @Binding var includeTime: Bool
