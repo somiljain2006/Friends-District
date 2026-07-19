@@ -21,9 +21,11 @@ struct EventDetailView: View {
     @State private var isSharing = false
     @State private var shareSuccess = false
     
-    // Booking
     @State private var isBooking = false
     @State private var bookingSuccess = false
+    @State private var includeTime = false
+    @State private var startTime = Date()
+    @State private var endTime = Date().addingTimeInterval(3600)
     @State private var errorMessage: String?
     
     // Group Booking
@@ -175,11 +177,7 @@ struct EventDetailView: View {
                         .disabled(isBooking || isSharing)
                         
                         Button {
-                            if roomId != nil {
-                                showBookingSheet = true
-                            } else {
-                                Task { await bookTicket(for: storedUsername) }
-                            }
+                            showBookingSheet = true
                         } label: {
                             HStack {
                                 if isBooking {
@@ -218,15 +216,23 @@ struct EventDetailView: View {
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showBookingSheet) {
-            GroupBookingSheet(
+            BookingSheet(
+                roomId: roomId,
                 members: roomMembers,
                 selectedMembers: $selectedMembers,
+                includeTime: $includeTime,
+                startTime: $startTime,
+                endTime: $endTime,
                 onConfirm: {
                     showBookingSheet = false
-                    confirmGroupBooking()
+                    if roomId != nil {
+                        confirmGroupBooking()
+                    } else {
+                        Task { await confirmSingleBooking() }
+                    }
                 }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.fraction(0.85)])
             .presentationDragIndicator(.visible)
         }
         .task {
@@ -356,7 +362,7 @@ struct EventDetailView: View {
     private func bookTicket(for phone: String) async -> Bool {
         guard let url = URL(string: "https://district.monu14.me/api/v1/bookings") else { return false }
         
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "username": storedUsername,
             "booked_for_username": phone,
             "external_event_id": item.id,
@@ -364,6 +370,13 @@ struct EventDetailView: View {
             "quantity": 1,
             "total_price": item.priceMin ?? 0.0
         ]
+        
+        if includeTime {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            payload["start_time"] = formatter.string(from: startTime)
+            payload["end_time"] = formatter.string(from: endTime)
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -379,6 +392,21 @@ struct EventDetailView: View {
             print("Failed to book: \(error)")
         }
         return false
+    }
+    
+    private func confirmSingleBooking() async {
+        isBooking = true
+        errorMessage = nil
+        let success = await bookTicket(for: storedUsername)
+        await MainActor.run {
+            if success {
+                self.bookingSuccess = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.bookingSuccess = false }
+            } else {
+                self.errorMessage = "Failed to book ticket."
+            }
+            self.isBooking = false
+        }
     }
     
     private func confirmGroupBooking() {
@@ -469,9 +497,15 @@ struct RoomMember: Codable, Identifiable, Hashable {
     let mobile_number: String
 }
 
-struct GroupBookingSheet: View {
+struct BookingSheet: View {
+    let roomId: String?
     let members: [RoomMember]
     @Binding var selectedMembers: Set<String>
+    
+    @Binding var includeTime: Bool
+    @Binding var startTime: Date
+    @Binding var endTime: Date
+    
     let onConfirm: () -> Void
     
     var body: some View {
@@ -479,18 +513,48 @@ struct GroupBookingSheet: View {
             Color(red: 0.12, green: 0.12, blue: 0.14).ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 20) {
-                Text("Book For Group")
+                Text(roomId != nil ? "Book For Group" : "Book Ticket")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 24)
                     .padding(.top, 32)
                 
-                if members.isEmpty {
-                    ProgressView().tint(.white)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Time Selection Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Toggle("Include Time Range", isOn: $includeTime)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .tint(Color(red: 0.52, green: 0.22, blue: 0.95))
+                            
+                            if includeTime {
+                                VStack(spacing: 12) {
+                                    DatePicker("From", selection: $startTime, displayedComponents: .hourAndMinute)
+                                        .colorScheme(.dark)
+                                    DatePicker("To", selection: $endTime, displayedComponents: .hourAndMinute)
+                                        .colorScheme(.dark)
+                                }
+                                .padding()
+                                .background(Color.white.opacity(0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Group Selection Section
+                        if roomId != nil {
+                            Text("Select Members")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 8)
+                            
+                            if members.isEmpty {
+                                ProgressView().tint(.white)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                VStack(spacing: 16) {
                             ForEach(members) { member in
                                 let isSelected = selectedMembers.contains(member.mobile_number)
                                 
@@ -523,25 +587,24 @@ struct GroupBookingSheet: View {
                                     .padding(.vertical, 8)
                                 }
                                 .buttonStyle(.plain)
-                            }
                         }
                     }
-                    
-                    Button {
-                        onConfirm()
-                    } label: {
-                        Text("Confirm Booking (\(selectedMembers.count))")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(selectedMembers.isEmpty ? Color.white.opacity(0.2) : Color(red: 0.52, green: 0.22, blue: 0.95))
-                            .clipShape(Capsule())
-                    }
-                    .disabled(selectedMembers.isEmpty)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
                 }
+                
+                Button {
+                    onConfirm()
+                } label: {
+                    Text(roomId != nil ? "Confirm Booking (\(selectedMembers.count))" : "Confirm Booking")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background((roomId != nil && selectedMembers.isEmpty) ? Color.white.opacity(0.2) : Color(red: 0.52, green: 0.22, blue: 0.95))
+                        .clipShape(Capsule())
+                }
+                .disabled(roomId != nil && selectedMembers.isEmpty)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
             }
         }
     }

@@ -22,6 +22,7 @@ struct ProfileView: View {
     @State private var showAddFriend = false
     @State private var showFriendList = false
     @State private var showChatWithUs = false
+    @State private var showBookings = false
     
     // MARK: - Dynamic Progress Calculation
     private var stepsDone: Int {
@@ -74,6 +75,28 @@ struct ProfileView: View {
                                 showFriendList = true
                             } label: {
                                 actionRowContent(icon: "list.bullet", isCustomImage: false, title: "Friend List")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                )
+                        )
+                        .padding(.horizontal, 18)
+                        
+                        sectionTitle("Bookings")
+                            .padding(.horizontal, 18)
+                            .padding(.top, 4)
+                        
+                        VStack(spacing: 0) {
+                            Button {
+                                showBookings = true
+                            } label: {
+                                actionRowContent(icon: "ticket", isCustomImage: false, title: "My Bookings")
                             }
                             .buttonStyle(.plain)
                         }
@@ -143,6 +166,9 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showFriendList) {
                 FriendListView()
+            }
+            .navigationDestination(isPresented: $showBookings) {
+                BookingsListView()
             }
             .navigationDestination(isPresented: $showChatWithUs) {
                 ChatWithUsView()
