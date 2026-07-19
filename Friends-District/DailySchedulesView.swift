@@ -8,7 +8,7 @@ struct DailySchedulesView: View {
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     
-    private let bgDeep = Color(red: 0.008, green: 0.008, blue: 0.012)
+    private let bgDeep = Color(red: 0.05, green: 0.05, blue: 0.06)
     private let bgBase = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let surface = Color.white.opacity(0.05)
     private let accent = Color(red: 0.37, green: 0.42, blue: 0.82)
@@ -16,19 +16,7 @@ struct DailySchedulesView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [bgDeep, bgBase, bgDeep],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            RadialGradient(
-                colors: [accent.opacity(0.12), Color.clear],
-                center: .topTrailing,
-                startRadius: 20,
-                endRadius: 400
-            )
+            bgDeep
             .ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 0) {

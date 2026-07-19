@@ -41,26 +41,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.008, green: 0.008, blue: 0.012),
-                        Color(red: 0.02, green: 0.02, blue: 0.024),
-                        Color(red: 0.008, green: 0.008, blue: 0.012)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                
-                RadialGradient(
-                    colors: [
-                        Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.1),
-                        Color.clear
-                    ],
-                    center: .topTrailing,
-                    startRadius: 20,
-                    endRadius: 350
-                )
+                Color(red: 0.05, green: 0.05, blue: 0.06)
                 .ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {

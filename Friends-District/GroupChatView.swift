@@ -315,7 +315,7 @@ struct GroupChatView: View {
 
             bottomInputBar
         }
-        .background(Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea())
+        .background(Color(red: 0.05, green: 0.05, blue: 0.06).ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .navigationDestination(isPresented: $showGroupInfo) {
             GroupInfoView(room: room, memberCount: viewModel.memberCount)

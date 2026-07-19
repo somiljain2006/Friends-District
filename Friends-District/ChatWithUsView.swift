@@ -303,26 +303,7 @@ struct ChatWithUsView: View {
     
     // MARK: - UI Components
     private var background: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.008, green: 0.008, blue: 0.012),
-                Color(red: 0.02, green: 0.02, blue: 0.024),
-                Color(red: 0.008, green: 0.008, blue: 0.012)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .overlay(
-            RadialGradient(
-                colors: [
-                    Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.12),
-                    .clear
-                ],
-                center: .topTrailing,
-                startRadius: 30,
-                endRadius: 420
-            )
-        )
+        Color(red: 0.05, green: 0.05, blue: 0.06)
     }
     
     private var topBar: some View {
