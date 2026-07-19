@@ -19,6 +19,6 @@ class HapticManager {
     func notification(type: UINotificationFeedbackGenerator.FeedbackType) {
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
-        generator.notificationOccurred(type: type)
+        generator.notificationOccurred(type)
     }
 }
