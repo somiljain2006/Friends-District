@@ -24,6 +24,7 @@ struct EventDetailView: View {
     @State private var isBooking = false
     @State private var bookingSuccess = false
     @State private var includeTime = false
+    @State private var bookingDate = Date()
     @State private var startTime = Date()
     @State private var endTime = Date().addingTimeInterval(3600)
     @State private var errorMessage: String?
@@ -221,6 +222,7 @@ struct EventDetailView: View {
                 members: $roomMembers,
                 selectedMembers: $selectedMembers,
                 includeTime: $includeTime,
+                bookingDate: $bookingDate,
                 startTime: $startTime,
                 endTime: $endTime,
                 onConfirm: {
@@ -372,10 +374,14 @@ struct EventDetailView: View {
         ]
         
         if includeTime {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            payload["start_time"] = formatter.string(from: startTime)
-            payload["end_time"] = formatter.string(from: endTime)
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            payload["booking_date"] = dateFormatter.string(from: bookingDate)
+            
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "HH:mm"
+            payload["start_time"] = timeFormatter.string(from: startTime)
+            payload["end_time"] = timeFormatter.string(from: endTime)
         }
         
         var request = URLRequest(url: url)
@@ -528,6 +534,7 @@ struct BookingSheet: View {
     @Binding var selectedMembers: Set<String>
     
     @Binding var includeTime: Bool
+    @Binding var bookingDate: Date
     @Binding var startTime: Date
     @Binding var endTime: Date
     
@@ -555,6 +562,8 @@ struct BookingSheet: View {
                             
                             if includeTime {
                                 VStack(spacing: 12) {
+                                    DatePicker("Date", selection: $bookingDate, displayedComponents: .date)
+                                        .colorScheme(.dark)
                                     DatePicker("From", selection: $startTime, displayedComponents: .hourAndMinute)
                                         .colorScheme(.dark)
                                     DatePicker("To", selection: $endTime, displayedComponents: .hourAndMinute)

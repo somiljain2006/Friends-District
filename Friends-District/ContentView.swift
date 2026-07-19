@@ -9,6 +9,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var showGroups = false
+    @State private var showSchedules = false
     @State private var isAddressExpanded = false
     
     // Changed UUID to String to match your API response ID
@@ -94,6 +95,9 @@ struct ContentView: View {
             }
             .navigationDestination(isPresented: $showGroups) {
                 GroupsView()
+            }
+            .navigationDestination(isPresented: $showSchedules) {
+                DailySchedulesView()
             }
         }
         .task {
@@ -227,7 +231,12 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
-
+                Button {
+                    showSchedules = true
+                } label: {
+                    CircleIconButton(systemName: "calendar")
+                }
+                .buttonStyle(.plain)
                 Button {
                     showProfile = true
                 } label: {
