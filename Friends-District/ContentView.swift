@@ -175,37 +175,7 @@ struct ContentView: View {
     
     // MARK: - View Components
     private var background: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.008, green: 0.008, blue: 0.012),
-                Color(red: 0.02, green: 0.02, blue: 0.024),
-                Color(red: 0.008, green: 0.008, blue: 0.012)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .overlay(
-            RadialGradient(
-                colors: [
-                    Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.15),
-                    Color.clear
-                ],
-                center: .topTrailing,
-                startRadius: 20,
-                endRadius: 420
-            )
-        )
-        .overlay(
-            RadialGradient(
-                colors: [
-                    Color(red: 0.49, green: 0.23, blue: 0.93).opacity(0.08),
-                    Color.clear
-                ],
-                center: .bottomLeading,
-                startRadius: 10,
-                endRadius: 350
-            )
-        )
+        Color(red: 0.05, green: 0.05, blue: 0.06)
     }
     
     private var header: some View {
@@ -272,48 +242,22 @@ struct ContentView: View {
     }
     
     private var searchBar: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.15))
-                    .frame(width: 40, height: 40)
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
-            }
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.white.opacity(0.4))
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Search")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .tracking(-0.2)
-                Text("Events, movies, restaurants...")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.25))
-            }
+            Text("Search events, movies, restaurants...")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(.white.opacity(0.3))
             
             Spacer()
-            
-            Image(systemName: "slider.horizontal.3")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.3))
         }
-        .frame(height: 64)
-        .padding(.horizontal, 18)
+        .frame(height: 52)
+        .padding(.horizontal, 16)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.06))
         )
         .padding(.top, 8)
     }
@@ -366,34 +310,24 @@ struct ContentView: View {
     }
     
     private func eventSection(title: String, items: [SpotlightItem]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
-                        .tracking(-0.3)
-                    Text("\(items.count) available")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
-                }
+                Text(title)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
                 
                 Spacer()
                 
                 NavigationLink(destination: CategoryListView(category: categories.first(where: { $0.title == title || ($0.title == "Events" && title == "Events") }) ?? categories[0])) {
-                    HStack(spacing: 4) {
-                        Text("See all")
-                            .font(.system(size: 14, weight: .semibold))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 12, weight: .bold))
-                    }
-                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
+                    Text("See all")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
             }
             .padding(.horizontal, 18)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                HStack(spacing: 14) {
                     ForEach(items) { item in
                         NavigationLink(destination: EventDetailView(item: item)) {
                             SectionCard(item: item)
@@ -404,7 +338,7 @@ struct ContentView: View {
                 .padding(.horizontal, 18)
             }
         }
-        .padding(.top, 12)
+        .padding(.top, 10)
         .id(title)
     }
 }
@@ -441,55 +375,24 @@ struct SpotlightItem: Identifiable, Hashable, Codable {
 // MARK: - Subviews
 struct CategoryCard: View {
     let category: Category
-    @State private var isPressed = false
-    
-    private var accentColor: Color {
-        switch category.apiType {
-        case "dining": return Color(red: 0.92, green: 0.35, blue: 0.05)
-        case "movie": return Color(red: 0.15, green: 0.39, blue: 0.92)
-        default: return Color(red: 0.49, green: 0.23, blue: 0.93)
-        }
-    }
     
     var body: some View {
         VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.white.opacity(0.04))
-                    .frame(height: 110)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [accentColor.opacity(0.2), Color.white.opacity(0.03)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                    .shadow(color: accentColor.opacity(0.1), radius: 16, y: 8)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+                    .frame(height: 100)
                 
-                VStack(spacing: 8) {
-                    Image(category.icon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 52, height: 52)
-                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                    
-                    Text(category.title)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
-                        .tracking(0.3)
-                        .textCase(.uppercase)
-                }
+                Image(category.icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
             }
+            
+            Text(category.title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.8))
         }
-        .scaleEffect(isPressed ? 0.95 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
-        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
     }
 }
 
@@ -498,88 +401,57 @@ struct SpotlightCard: View {
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            Color.white.opacity(0.04)
+            Color.white.opacity(0.06)
                 .frame(maxWidth: .infinity)
-                .frame(height: 440)
+                .frame(height: 420)
                 .overlay(
                     AsyncImage(url: URL(string: item.imageUrl)) { phase in
                         switch phase {
                         case .empty:
-                            ZStack {
-                                Color.white.opacity(0.04)
-                                ProgressView()
-                                    .tint(Color(red: 0.37, green: 0.42, blue: 0.82))
-                            }
+                            ProgressView().tint(.white)
                         case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
+                            image.resizable().scaledToFill()
                         case .failure:
-                            ZStack {
-                                Color.white.opacity(0.04)
-                                Image(systemName: "photo")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(.white.opacity(0.2))
-                            }
+                            Image(systemName: "photo")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.white.opacity(0.2))
                         @unknown default:
                             EmptyView()
                         }
                     }
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.1), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 1
-                        )
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             
             LinearGradient(
-                colors: [Color.clear, Color.clear, Color.black.opacity(0.85)],
-                startPoint: .top,
+                colors: [Color.clear, Color.black.opacity(0.8)],
+                startPoint: .center,
                 endPoint: .bottom
             )
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 if let type = item.type {
                     Text(type.capitalized)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                        .tracking(0.8)
-                        .textCase(.uppercase)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.8))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.ultraThinMaterial)
                         .clipShape(Capsule())
                 }
                 
                 Text(item.title)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(.white)
-                    .tracking(-0.5)
                     .lineLimit(2)
-                    .shadow(color: .black.opacity(0.5), radius: 4)
                 
-                if let min = item.priceMin, let max = item.priceMax {
-                    Text("From $\(String(format: "%.0f", min)) – $\(String(format: "%.0f", max))")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                } else {
-                    Text(item.description)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .lineLimit(2)
-                }
+                Text(item.description)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .lineLimit(1)
             }
-            .padding(24)
+            .padding(20)
         }
-        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
     }
 }
 
@@ -588,93 +460,50 @@ struct SectionCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ZStack(alignment: .topTrailing) {
-                Color.white.opacity(0.04)
-                    .frame(width: 220, height: 150)
-                    .overlay(
-                        AsyncImage(url: URL(string: item.imageUrl)) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView().tint(Color(red: 0.37, green: 0.42, blue: 0.82))
-                            case .success(let image):
-                                image.resizable().scaledToFill()
-                            case .failure:
-                                Image(systemName: "photo").foregroundStyle(.white.opacity(0.2))
-                            @unknown default:
-                                EmptyView()
-                            }
+            Color.white.opacity(0.06)
+                .frame(width: 200, height: 140)
+                .overlay(
+                    AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView().tint(.white)
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            Image(systemName: "photo").foregroundStyle(.white.opacity(0.2))
+                        @unknown default:
+                            EmptyView()
                         }
+                    }
+                )
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 16,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 16,
+                        style: .continuous
                     )
-                    .clipShape(
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: 18,
-                            bottomLeadingRadius: 0,
-                            bottomTrailingRadius: 0,
-                            topTrailingRadius: 18,
-                            style: .continuous
-                        )
-                    )
-                
-                if let min = item.priceMin {
-                    Text("$\(String(format: "%.0f", min))")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.6))
-                        .clipShape(Capsule())
-                        .padding(10)
-                }
-            }
+                )
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
-                    .tracking(-0.2)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                 
-                HStack(spacing: 12) {
-                    if let date = item.date {
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 11))
-                            Text(date.prefix(10))
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
-                    }
-                    
-                    if let location = item.location {
-                        HStack(spacing: 4) {
-                            Image(systemName: "mappin")
-                                .font(.system(size: 11))
-                            Text(location)
-                                .font(.system(size: 12, weight: .medium))
-                                .lineLimit(1)
-                        }
-                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
-                    }
+                if let date = item.date {
+                    Text(String(date.prefix(10)))
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .frame(width: 220, alignment: .leading)
+            .padding(12)
+            .frame(width: 200, alignment: .leading)
         }
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.06))
         )
     }
 }
@@ -703,33 +532,13 @@ struct ProfileAvatar: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.37, green: 0.42, blue: 0.82),
-                            Color(red: 0.49, green: 0.23, blue: 0.93)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 46, height: 46)
+                .fill(Color(red: 0.37, green: 0.42, blue: 0.82))
+                .frame(width: 42, height: 42)
             
-            Circle()
-                .fill(Color.white.opacity(0.9))
-                .frame(width: 18, height: 18)
-                .offset(y: -6)
-            
-            Capsule()
-                .fill(Color.white.opacity(0.85))
-                .frame(width: 28, height: 12)
-                .offset(y: 10)
+            Image(systemName: "person.fill")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.white)
         }
-        .overlay(
-            Circle()
-                .stroke(Color.white.opacity(0.2), lineWidth: 1.5)
-        )
-        .shadow(color: Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.3), radius: 8)
     }
 }
 

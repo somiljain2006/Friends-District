@@ -30,7 +30,7 @@ struct GroupsView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
+            Color(red: 0.05, green: 0.05, blue: 0.06).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
@@ -105,19 +105,8 @@ struct GroupsView: View {
                             }
                             .padding(.vertical, 10)
                             .background(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(Color.white.opacity(0.04))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                            .stroke(
-                                                LinearGradient(
-                                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 1
-                                            )
-                                    )
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
                             )
                             .padding(.top, 8)
                         }
@@ -457,67 +446,38 @@ struct CreateRoomPayload: Codable {
 // MARK: - Subviews
 struct GroupRow: View {
     let room: Room
-    @State private var isPressed = false
     
     var body: some View {
         HStack(spacing: 14) {
-            ZStack(alignment: .bottomTrailing) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [room.themeColor, room.themeColor.opacity(0.6)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 56, height: 56)
-                    
-                    Text(room.initial)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                
+            ZStack {
                 Circle()
-                    .fill(Color(red: 0.2, green: 0.8, blue: 0.4))
-                    .frame(width: 14, height: 14)
-                    .overlay(
-                        Circle()
-                            .stroke(Color(red: 0.008, green: 0.008, blue: 0.012), lineWidth: 2.5)
-                    )
-                    .offset(x: 2, y: 2)
+                    .fill(room.themeColor)
+                    .frame(width: 48, height: 48)
+                
+                Text(room.initial)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(room.name)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
-                    .tracking(-0.2)
                 
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color(red: 0.2, green: 0.8, blue: 0.4).opacity(0.5))
-                        .frame(width: 6, height: 6)
-                    Text("Active now")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.35))
-                }
+                Text("Tap to open")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.35))
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.6))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white.opacity(0.25))
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
-        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
     }
 }
 

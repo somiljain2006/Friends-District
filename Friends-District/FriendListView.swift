@@ -61,7 +61,7 @@ struct FriendListView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
+            Color(red: 0.05, green: 0.05, blue: 0.06).ignoresSafeArea()
             
             VStack(spacing: 0) {
                 topBar

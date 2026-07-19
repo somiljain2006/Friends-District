@@ -50,15 +50,7 @@ struct ProfileSetupView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.008, green: 0.008, blue: 0.012),
-                    Color(red: 0.02, green: 0.02, blue: 0.024),
-                    Color(red: 0.008, green: 0.008, blue: 0.012)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Color(red: 0.05, green: 0.05, blue: 0.06)
             .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {

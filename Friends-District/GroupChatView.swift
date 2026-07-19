@@ -315,7 +315,7 @@ struct GroupChatView: View {
 
             bottomInputBar
         }
-        .background(Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea())
+        .background(Color(red: 0.05, green: 0.05, blue: 0.06).ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .navigationDestination(isPresented: $showGroupInfo) {
             GroupInfoView(room: room, memberCount: viewModel.memberCount)
@@ -468,21 +468,8 @@ struct GroupChatView: View {
 
     private var bottomInputBar: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Button { } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                    Text("Ask @Planner")
-                }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color(red: 0.65, green: 0.40, blue: 1.0))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color(red: 0.20, green: 0.10, blue: 0.35))
-                .clipShape(Capsule())
-            }
-
             HStack(spacing: 12) {
-                TextField("Message or @Planner...", text: $messageText)
+                TextField("Message...", text: $messageText)
                     .font(.system(size: 16))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)

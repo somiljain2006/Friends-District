@@ -106,16 +106,7 @@ struct BookingsListView: View {
                 }
             }
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.008, green: 0.008, blue: 0.012),
-                    Color(red: 0.02, green: 0.02, blue: 0.024)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            ).ignoresSafeArea()
-        )
+        .background(Color(red: 0.05, green: 0.05, blue: 0.06).ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .task {
             await fetchBookings()
@@ -216,19 +207,8 @@ struct BookingCard: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.06))
         )
     }
 }
