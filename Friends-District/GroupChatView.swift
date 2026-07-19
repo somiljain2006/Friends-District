@@ -396,6 +396,7 @@ struct GroupChatView: View {
             Spacer()
             
             Button {
+                HapticManager.shared.impact(style: .medium)
                 showSummarySheet = true
             } label: {
                 HStack(spacing: 4) {
@@ -517,6 +518,7 @@ struct GroupChatView: View {
                 Button {
                     let textToSend = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !textToSend.isEmpty {
+                        HapticManager.shared.impact(style: .light)
                         // Transmit message data via the websocket lifecycle hook
                         viewModel.sendRealtimeMessage(text: textToSend)
                         messageText = ""
