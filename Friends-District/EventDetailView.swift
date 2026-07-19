@@ -84,16 +84,35 @@ struct EventDetailView: View {
                     // Content
                     VStack(alignment: .leading, spacing: 24) {
                         // Title & Price
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Text(item.title)
-                                .font(.system(size: 32, weight: .bold))
+                                .font(.system(size: 30, weight: .bold))
                                 .foregroundStyle(.white)
+                                .tracking(-0.5)
                                 .lineLimit(3)
                             
+                            if let type = item.type {
+                                Text(type.capitalized)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .tracking(0.8)
+                                    .textCase(.uppercase)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.8))
+                                    .clipShape(Capsule())
+                            }
+                            
                             if let min = item.priceMin, let max = item.priceMax {
-                                Text("$\(String(format: "%.2f", min)) - $\(String(format: "%.2f", max))")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
+                                HStack(spacing: 6) {
+                                    Text("$\(String(format: "%.0f", min))")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
+                                    Text("— $\(String(format: "%.0f", max))")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundStyle(.white.opacity(0.5))
+                                        .padding(.top, 3)
+                                }
                             }
                         }
                         
@@ -253,7 +272,7 @@ struct EventDetailView: View {
     // MARK: - Share Sheet
     private var shareSheetContent: some View {
         ZStack {
-            Color(red: 0.12, green: 0.12, blue: 0.14).ignoresSafeArea()
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 20) {
                 Text("Share to Group")
@@ -503,26 +522,43 @@ struct InfoCard: View {
     let subtitle: String
     
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             ZStack {
-                Circle().fill(Color.white.opacity(0.1)).frame(width: 44, height: 44)
-                Image(systemName: icon).font(.system(size: 18, weight: .semibold)).foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.1))
+                    .frame(width: 40, height: 40)
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
             }
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
-                Text(subtitle)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-            }
-            Spacer()
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.4))
+                .tracking(0.5)
+                .textCase(.uppercase)
+            Text(subtitle)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
         }
-        .padding(12)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
     }
 }
 
@@ -548,7 +584,7 @@ struct BookingSheet: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.12, green: 0.12, blue: 0.14).ignoresSafeArea()
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 20) {
                 Text(roomId != nil ? "Book For Group" : "Book Ticket")

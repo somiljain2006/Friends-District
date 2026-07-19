@@ -54,17 +54,44 @@ struct BookingsListView: View {
             
             if isLoading {
                 Spacer()
-                ProgressView().tint(.white).scaleEffect(1.5)
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(Color(red: 0.37, green: 0.42, blue: 0.82))
+                        .scaleEffect(1.5)
+                    Text("Loading bookings...")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
                 Spacer()
             } else if let errorMessage = errorMessage {
                 Spacer()
-                Text(errorMessage).foregroundStyle(.red.opacity(0.8))
+                VStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.red.opacity(0.6))
+                    Text(errorMessage)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.red.opacity(0.8))
+                }
                 Spacer()
             } else if bookings.isEmpty {
                 Spacer()
-                Text("You haven't booked anything yet.")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.04))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "ticket")
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.5))
+                    }
+                    Text("No bookings yet")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                    Text("Your tickets will appear here")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
                 Spacer()
             } else {
                 ScrollView(showsIndicators: false) {

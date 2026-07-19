@@ -65,11 +65,22 @@ struct ContentView: View {
                             .padding(.horizontal, 18)
                             .padding(.top, 4)
                             
-                            Text("In the spotlight")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 18)
-                                .padding(.top, 6)
+                            HStack {
+                                Text("In the spotlight")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .tracking(-0.5)
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 4) {
+                                    Text("\(spotlightItems.count) events")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                                }
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.top, 6)
                             
                             spotlightSection
                             
@@ -261,26 +272,48 @@ struct ContentView: View {
     }
     
     private var searchBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.35))
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
+            }
             
-            Text("Search for 'Shakira'")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(.white.opacity(0.35))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Search")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .tracking(-0.2)
+                Text("Events, movies, restaurants...")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.25))
+            }
             
             Spacer()
+            
+            Image(systemName: "slider.horizontal.3")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.3))
         }
         .frame(height: 64)
         .padding(.horizontal, 18)
         .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color.white.opacity(0.06))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.04))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
         .padding(.top, 8)
     }
@@ -334,10 +367,30 @@ struct ContentView: View {
     
     private func eventSection(title: String, items: [SpotlightItem]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                        .tracking(-0.3)
+                    Text("\(items.count) available")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                }
+                
+                Spacer()
+                
+                NavigationLink(destination: CategoryListView(category: categories.first(where: { $0.title == title || ($0.title == "Events" && title == "Events") }) ?? categories[0])) {
+                    HStack(spacing: 4) {
+                        Text("See all")
+                            .font(.system(size: 14, weight: .semibold))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
+                }
+            }
+            .padding(.horizontal, 18)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
@@ -352,7 +405,6 @@ struct ContentView: View {
             }
         }
         .padding(.top, 12)
-        // 3. Add an ID identical to the title so ScrollViewReader can find it
         .id(title)
     }
 }
@@ -389,40 +441,55 @@ struct SpotlightItem: Identifiable, Hashable, Codable {
 // MARK: - Subviews
 struct CategoryCard: View {
     let category: Category
+    @State private var isPressed = false
+    
+    private var accentColor: Color {
+        switch category.apiType {
+        case "dining": return Color(red: 0.92, green: 0.35, blue: 0.05)
+        case "movie": return Color(red: 0.15, green: 0.39, blue: 0.92)
+        default: return Color(red: 0.49, green: 0.23, blue: 0.93)
+        }
+    }
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color.white.opacity(0.04))
-                    .frame(height: 120)
+                    .frame(height: 110)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .stroke(
                                 LinearGradient(
-                                    colors: [Color.white.opacity(0.1), Color.white.opacity(0.03)],
+                                    colors: [accentColor.opacity(0.2), Color.white.opacity(0.03)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
                                 lineWidth: 1
                             )
                     )
-                    .shadow(color: Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.08), radius: 12, y: 6)
+                    .shadow(color: accentColor.opacity(0.1), radius: 16, y: 8)
                 
-                Image(category.icon)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 82, height: 82)
-                    .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                VStack(spacing: 8) {
+                    Image(category.icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 52, height: 52)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    
+                    Text(category.title)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
+                        .tracking(0.3)
+                        .textCase(.uppercase)
+                }
             }
-            
-            Text(category.title)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
-                .tracking(-0.2)
-                .lineLimit(1)
-                .padding(.bottom, 2)
         }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
 
@@ -430,56 +497,89 @@ struct SpotlightCard: View {
     let item: SpotlightItem
     
     var body: some View {
-        VStack(alignment: .center, spacing: 16) {
-            ZStack(alignment: .top) {
-                
-                // 1. Establish a rigid, unchanging bounding box
-                Color.white.opacity(0.05)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 420)
-                    // 2. Place AsyncImage in an overlay so it cannot stretch the container
-                    .overlay(
-                        AsyncImage(url: URL(string: item.imageUrl)) { phase in
-                            switch phase {
-                            case .empty:
+        ZStack(alignment: .bottomLeading) {
+            Color.white.opacity(0.04)
+                .frame(maxWidth: .infinity)
+                .frame(height: 440)
+                .overlay(
+                    AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                        switch phase {
+                        case .empty:
+                            ZStack {
+                                Color.white.opacity(0.04)
                                 ProgressView()
-                                    .tint(.white)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill() // Fills the overlay without expanding it
-                            case .failure:
+                                    .tint(Color(red: 0.37, green: 0.42, blue: 0.82))
+                            }
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            ZStack {
+                                Color.white.opacity(0.04)
                                 Image(systemName: "photo")
                                     .font(.system(size: 40))
-                                    .foregroundStyle(.white.opacity(0.3))
-                            @unknown default:
-                                EmptyView()
+                                    .foregroundStyle(.white.opacity(0.2))
                             }
+                        @unknown default:
+                            EmptyView()
                         }
-                    )
-                    // 3. Clip the entire container (which neatly crops any scaledToFill overflow)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 10)
-                
-
-            }
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.1), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                )
             
-            // Text Content Below Image
-            VStack(spacing: 6) {
-                Text(item.title)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .lineLimit(1)
-                    .multilineTextAlignment(.center)
+            LinearGradient(
+                colors: [Color.clear, Color.clear, Color.black.opacity(0.85)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            
+            VStack(alignment: .leading, spacing: 8) {
+                if let type = item.type {
+                    Text(type.capitalized)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .tracking(0.8)
+                        .textCase(.uppercase)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.8))
+                        .clipShape(Capsule())
+                }
                 
-                Text(item.description)
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.6))
+                Text(item.title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+                    .tracking(-0.5)
                     .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 12)
+                    .shadow(color: .black.opacity(0.5), radius: 4)
+                
+                if let min = item.priceMin, let max = item.priceMax {
+                    Text("From $\(String(format: "%.0f", min)) – $\(String(format: "%.0f", max))")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                } else {
+                    Text(item.description)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(2)
+                }
             }
+            .padding(24)
         }
+        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
     }
 }
 
@@ -487,10 +587,10 @@ struct SectionCard: View {
     let item: SpotlightItem
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ZStack(alignment: .bottom) {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topTrailing) {
                 Color.white.opacity(0.04)
-                    .frame(width: 240, height: 160)
+                    .frame(width: 220, height: 150)
                     .overlay(
                         AsyncImage(url: URL(string: item.imageUrl)) { phase in
                             switch phase {
@@ -499,51 +599,83 @@ struct SectionCard: View {
                             case .success(let image):
                                 image.resizable().scaledToFill()
                             case .failure:
-                                Image(systemName: "photo").foregroundStyle(.white.opacity(0.3))
+                                Image(systemName: "photo").foregroundStyle(.white.opacity(0.2))
                             @unknown default:
                                 EmptyView()
                             }
                         }
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.08), Color.clear],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
+                    .clipShape(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 18,
+                            bottomLeadingRadius: 0,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 18,
+                            style: .continuous
+                        )
                     )
                 
-                LinearGradient(
-                    colors: [Color.clear, Color.black.opacity(0.6)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-                .frame(width: 240, height: 80)
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                )
+                if let min = item.priceMin {
+                    Text("$\(String(format: "%.0f", min))")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(Capsule())
+                        .padding(10)
+                }
             }
-            .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
                     .tracking(-0.2)
                     .lineLimit(1)
                 
-                Text(item.description)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
-                    .lineLimit(2)
+                HStack(spacing: 12) {
+                    if let date = item.date {
+                        HStack(spacing: 4) {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 11))
+                            Text(date.prefix(10))
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                    }
+                    
+                    if let location = item.location {
+                        HStack(spacing: 4) {
+                            Image(systemName: "mappin")
+                                .font(.system(size: 11))
+                            Text(location)
+                                .font(.system(size: 12, weight: .medium))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                    }
+                }
             }
-            .frame(width: 240, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .frame(width: 220, alignment: .leading)
         }
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
     }
 }
 

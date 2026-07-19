@@ -36,26 +36,59 @@ struct CategoryListView: View {
             
             if isLoading {
                 Spacer()
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.5)
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(Color(red: 0.37, green: 0.42, blue: 0.82))
+                        .scaleEffect(1.5)
+                    Text("Discovering \(category.title.lowercased())...")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
                 Spacer()
             } else if let errorMessage = errorMessage {
                 Spacer()
-                Text(errorMessage)
-                    .foregroundStyle(.red.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                VStack(spacing: 10) {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.red.opacity(0.6))
+                    Text(errorMessage)
+                        .foregroundStyle(.red.opacity(0.8))
+                        .font(.system(size: 15, weight: .medium))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
                 Spacer()
             } else if items.isEmpty {
                 Spacer()
-                Text("No \(category.title.lowercased()) found.")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.04))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.5))
+                    }
+                    Text("No \(category.title.lowercased()) found")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                    Text("Check back later for updates")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
                 Spacer()
             } else {
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 20) {
+                    HStack {
+                        Text("\(items.count) results")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.35))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 8)
+                    
+                    LazyVStack(spacing: 16) {
                         ForEach(items) { item in
                             NavigationLink(destination: EventDetailView(item: item)) {
                                 CategoryListItemCard(item: item)
@@ -64,7 +97,7 @@ struct CategoryListView: View {
                         }
                     }
                     .padding(.horizontal, 18)
-                    .padding(.top, 10)
+                    .padding(.top, 4)
                     .padding(.bottom, 30)
                 }
             }

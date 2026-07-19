@@ -48,16 +48,43 @@ struct GroupsView: View {
                     } else {
                         
                         // MARK: - Joined Groups Section
-                        Text("\(rooms.count) groups")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.45))
-                            .padding(.top, 8)
+                        HStack(spacing: 8) {
+                            Text("Your Groups")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.white)
+                                .tracking(-0.3)
+                            
+                            Text("\(rooms.count)")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Capsule())
+                            
+                            Spacer()
+                        }
+                        .padding(.top, 8)
                         
                         if rooms.isEmpty {
-                            Text("You haven't joined any groups yet.")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.5))
-                                .padding(.top, 8)
+                            VStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.04))
+                                        .frame(width: 72, height: 72)
+                                    Image(systemName: "person.3")
+                                        .font(.system(size: 28))
+                                        .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.6))
+                                }
+                                Text("No groups yet")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.6))
+                                Text("Create a group to start chatting")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.3))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 32)
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(rooms) { room in
@@ -96,16 +123,36 @@ struct GroupsView: View {
                         }
                         
                         // MARK: - Pending Invites Section
-                        Text("Pending invites (\(pendingInvites.count))")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.45))
-                            .padding(.top, 24)
+                        HStack(spacing: 8) {
+                            Text("Invites")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.white)
+                                .tracking(-0.3)
+                            
+                            if !pendingInvites.isEmpty {
+                                Text("\(pendingInvites.count)")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color(red: 0.37, green: 0.42, blue: 0.82))
+                                    .clipShape(Capsule())
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.top, 24)
                         
                         if pendingInvites.isEmpty {
-                            Text("No pending invitations.")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.5))
-                                .padding(.top, 8)
+                            HStack(spacing: 12) {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(.green.opacity(0.6))
+                                Text("All caught up — no pending invites")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.35))
+                            }
+                            .padding(.top, 8)
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(pendingInvites) { room in
@@ -410,38 +457,67 @@ struct CreateRoomPayload: Codable {
 // MARK: - Subviews
 struct GroupRow: View {
     let room: Room
+    @State private var isPressed = false
     
     var body: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(room.themeColor)
-                    .frame(width: 64, height: 64)
+        HStack(spacing: 14) {
+            ZStack(alignment: .bottomTrailing) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [room.themeColor, room.themeColor.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    
+                    Text(room.initial)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
                 
-                Text(room.initial)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
+                Circle()
+                    .fill(Color(red: 0.2, green: 0.8, blue: 0.4))
+                    .frame(width: 14, height: 14)
+                    .overlay(
+                        Circle()
+                            .stroke(Color(red: 0.008, green: 0.008, blue: 0.012), lineWidth: 2.5)
+                    )
+                    .offset(x: 2, y: 2)
             }
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(room.name)
-                    .font(.system(size: 22, weight: .medium))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white)
+                    .tracking(-0.2)
                 
-                Text("Active recently")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.5))
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color(red: 0.2, green: 0.8, blue: 0.4).opacity(0.5))
+                        .frame(width: 6, height: 6)
+                    Text("Active now")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.25))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.6))
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 18)
+        .padding(.vertical, 14)
         .contentShape(Rectangle())
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
+        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
 
