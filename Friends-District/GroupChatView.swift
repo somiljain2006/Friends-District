@@ -5,6 +5,7 @@
 //
 
 import SwiftUI
+import Translation
 internal import Combine
 
 // MARK: - Models
@@ -227,6 +228,11 @@ struct GroupChatView: View {
     @State private var showGroupInfo = false
     @State private var selectedEventMessage: RoomMessage? = nil
 
+    // Apple Intelligence & Translation Features
+    @State private var showSummarySheet = false
+    @State private var showTranslation = false
+    @State private var textToTranslate = ""
+
     // Pull the active setup directly out from your local AppStorage cache
     @AppStorage("profileUsername") private var storedUsername = ""
     @AppStorage("profileUsername") private var userUsername = ""
@@ -294,6 +300,14 @@ struct GroupChatView: View {
                                             .padding(.vertical, 12)
                                             .background(senderDetails.isMe ? Color(red: 0.37, green: 0.42, blue: 0.82) : Color.white.opacity(0.06))
                                             .clipShape(RoundedRectangle(cornerRadius: 18))
+                                            .contextMenu {
+                                                Button {
+                                                    textToTranslate = message.content
+                                                    showTranslation = true
+                                                } label: {
+                                                    Label("Translate", systemImage: "translate")
+                                                }
+                                            }
                                     )
                                     .id(message.id)
                                 }
@@ -347,6 +361,7 @@ struct GroupChatView: View {
             // Clear socket reference allocation cleanly when the screen tears down
             viewModel.disconnectWebSocket()
         }
+        .translationPresentation(isPresented: $showTranslation, text: textToTranslate)
     }
 
     private var topNavigationBar: some View {
@@ -379,6 +394,24 @@ struct GroupChatView: View {
             }
 
             Spacer()
+            
+            Button {
+                HapticManager.shared.impact(style: .medium)
+                showSummarySheet = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                    Text("Summarize")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundStyle(Color(red: 0.65, green: 0.40, blue: 1.0))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(red: 0.20, green: 0.10, blue: 0.35))
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
 
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 18, weight: .semibold))
@@ -399,6 +432,11 @@ struct GroupChatView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .sheet(isPresented: $showSummarySheet) {
+            AppleIntelligenceSummaryView()
+                .presentationDetents([.height(260)])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private func userMessageRow(initials: String, name: String, avatarColor: Color, isMe: Bool, content: some View) -> some View {
@@ -480,6 +518,7 @@ struct GroupChatView: View {
                 Button {
                     let textToSend = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !textToSend.isEmpty {
+                        HapticManager.shared.impact(style: .light)
                         // Transmit message data via the websocket lifecycle hook
                         viewModel.sendRealtimeMessage(text: textToSend)
                         messageText = ""
@@ -582,6 +621,31 @@ struct EventMessageCard: View {
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Apple Intelligence Mock View
+struct AppleIntelligenceSummaryView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(Color(red: 0.65, green: 0.40, blue: 1.0))
+                Text("Apple Intelligence Summary")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .padding(.bottom, 8)
+            
+            Text("The group is actively planning to attend an upcoming event. Most members are interested, but a few are still deciding on the final time. The consensus is leaning towards this weekend.")
+                .font(.system(size: 16))
+                .foregroundStyle(.white.opacity(0.8))
+                .lineSpacing(6)
+            
+            Spacer()
+        }
+        .padding(24)
+        .background(Color(red: 0.05, green: 0.05, blue: 0.06).ignoresSafeArea())
     }
 }
 

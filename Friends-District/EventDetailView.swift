@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import MapKit
+import EventKit
 
 struct EventDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -23,6 +25,11 @@ struct EventDetailView: View {
     
     @State private var isBooking = false
     @State private var bookingSuccess = false
+    
+    // Calendar State
+    private let eventStore = EKEventStore()
+    @State private var showCalendarAlert = false
+    @State private var calendarAlertMessage = ""
     @State private var includeTime = false
     @State private var bookingDate = Date()
     @State private var startTime = Date()
@@ -113,6 +120,10 @@ struct EventDetailView: View {
                             InfoCard(icon: "mappin.and.ellipse", title: "Location", subtitle: item.location ?? "TBA")
                         }
                         
+                        if let loc = item.location, loc != "TBA" {
+                            EventMapView(locationString: loc)
+                        }
+                        
                         // Description
                         if !item.description.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
@@ -163,9 +174,24 @@ struct EventDetailView: View {
                             .foregroundStyle(.red)
                     }
                     if bookingSuccess {
-                        Text("Booking Confirmed!")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.green)
+                        HStack {
+                            Text("Booking Confirmed!")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.green)
+                            Spacer()
+                            Button {
+                                HapticManager.shared.impact(style: .medium)
+                                addToCalendar()
+                            } label: {
+                                Text("Add to Calendar")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.blue)
+                                    .clipShape(Capsule())
+                            }
+                        }
                     }
                     if shareSuccess {
                         Text("Event Shared!")
@@ -188,6 +214,7 @@ struct EventDetailView: View {
                         .disabled(isBooking || isSharing)
                         
                         Button {
+                            HapticManager.shared.impact(style: .medium)
                             showBookingSheet = true
                         } label: {
                             HStack {
@@ -221,6 +248,9 @@ struct EventDetailView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .navigationBarHidden(true)
+        .alert(isPresented: $showCalendarAlert) {
+            Alert(title: Text("Calendar"), message: Text(calendarAlertMessage), dismissButton: .default(Text("OK")))
+        }
         .sheet(isPresented: $showShareSheet) {
             shareSheetContent
                 .presentationDetents([.medium, .large])
@@ -491,6 +521,38 @@ struct EventDetailView: View {
             }
         }
     }
+    // MARK: - EventKit Logic
+    private func addToCalendar() {
+        eventStore.requestWriteOnlyAccessToEvents { granted, error in
+            DispatchQueue.main.async {
+                if granted && error == nil {
+                    let event = EKEvent(eventStore: self.eventStore)
+                    event.title = self.item.title
+                    event.notes = self.item.description
+                    event.location = self.item.location
+                    
+                    // Basic date parsing mock, in reality parse item.date
+                    event.startDate = Date().addingTimeInterval(3600 * 24)
+                    event.endDate = event.startDate.addingTimeInterval(3600 * 2)
+                    event.calendar = self.eventStore.defaultCalendarForNewEvents
+                    
+                    do {
+                        try self.eventStore.save(event, span: .thisEvent)
+                        self.calendarAlertMessage = "Event added to your calendar successfully!"
+                        self.showCalendarAlert = true
+                        HapticManager.shared.notification(type: .success)
+                    } catch {
+                        self.calendarAlertMessage = "Failed to save event."
+                        self.showCalendarAlert = true
+                        HapticManager.shared.notification(type: .error)
+                    }
+                } else {
+                    self.calendarAlertMessage = "Calendar access denied. Please enable it in Settings."
+                    self.showCalendarAlert = true
+                }
+            }
+        }
+    }
     
     // MARK: - Helpers
     private func formattedDate(_ dateStr: String?) -> String {
@@ -653,6 +715,54 @@ struct BookingSheet: View {
                 .disabled(roomId != nil && selectedMembers.isEmpty)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
+            }
+        }
+    }
+}
+
+// MARK: - MapKit View
+struct EventMapView: View {
+    let locationString: String
+    @State private var position: MapCameraPosition = .automatic
+    @State private var coordinate: CLLocationCoordinate2D?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Location Map")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+            
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.04))
+                
+                Map(position: $position) {
+                    if let coord = coordinate {
+                        Marker(locationString, coordinate: coord)
+                    }
+                }
+                .disabled(true) // Disable interaction for simple visual map
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .frame(height: 180)
+            .onAppear {
+                geocode()
+            }
+        }
+        .padding(.top, 16)
+    }
+    
+    private func geocode() {
+        let geocoder = CLGeocoder()
+        geocoder.geocodeAddressString(locationString) { placemarks, error in
+            if let placemark = placemarks?.first, let location = placemark.location {
+                self.coordinate = location.coordinate
+                self.position = .region(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 5000, longitudinalMeters: 5000))
+            } else {
+                // Fallback coordinate (e.g. SF)
+                let fallback = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                self.coordinate = fallback
+                self.position = .region(MKCoordinateRegion(center: fallback, latitudinalMeters: 5000, longitudinalMeters: 5000))
             }
         }
     }
