@@ -25,7 +25,7 @@ struct GroupInfoView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea() // Deep black/grey background
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar
@@ -37,7 +37,7 @@ struct GroupInfoView: View {
                         VStack(spacing: 16) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(Color.white.opacity(0.06))
+                                    .fill(Color.white.opacity(0.04))
                                     .frame(width: 96, height: 96)
 
                                 Text("🎬")
@@ -76,13 +76,13 @@ struct GroupInfoView: View {
                                         Text("Add members")
                                     }
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
+                                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
                                     .background(Color.clear)
                                     .clipShape(Capsule())
                                     .overlay(
-                                        Capsule().stroke(Color(red: 0.52, green: 0.22, blue: 0.95).opacity(0.8), lineWidth: 1)
+                                        Capsule().stroke(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.8), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -115,7 +115,7 @@ struct GroupInfoView: View {
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
+                                    .fill(Color.white.opacity(0.04))
                             )
                         }
                     }
@@ -130,7 +130,7 @@ struct GroupInfoView: View {
                     .tint(.white)
                     .foregroundStyle(.white)
                     .padding()
-                    .background(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .background(Color.white.opacity(0.08))
                     .cornerRadius(12)
             }
         }
@@ -321,7 +321,7 @@ struct MemberRow: View {
                     Circle()
                         .fill(Color(red: 0.2, green: 0.8, blue: 0.4))
                         .frame(width: 12, height: 12)
-                        .overlay(Circle().stroke(Color(red: 0.12, green: 0.12, blue: 0.13), lineWidth: 2))
+                        .overlay(Circle().stroke(Color.white.opacity(0.08), lineWidth: 2))
                         .offset(x: 2, y: 2)
                 }
             }

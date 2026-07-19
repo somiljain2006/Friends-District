@@ -61,7 +61,7 @@ struct FriendListView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
             
             VStack(spacing: 0) {
                 topBar
@@ -241,7 +241,7 @@ struct FriendRow: View {
                     .frame(height: 36)
                     .background(
                         Capsule()
-                            .fill(Color(red: 0.52, green: 0.22, blue: 0.95))
+                            .fill(Color(red: 0.37, green: 0.42, blue: 0.82))
                     )
             }
             .buttonStyle(.plain)

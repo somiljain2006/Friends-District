@@ -35,7 +35,7 @@ struct AddFriendView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
@@ -404,11 +404,11 @@ struct AddFriendView: View {
                     .fill(Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color(red: 0.52, green: 0.22, blue: 0.95), lineWidth: 1)
+                            .stroke(Color(red: 0.37, green: 0.42, blue: 0.82), lineWidth: 1)
                     )
             } else {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color(red: 0.52, green: 0.22, blue: 0.95))
+                    .fill(Color(red: 0.37, green: 0.42, blue: 0.82))
             }
         }
     }

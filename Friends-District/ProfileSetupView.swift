@@ -52,9 +52,9 @@ struct ProfileSetupView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.06, green: 0.06, blue: 0.08),
-                    Color(red: 0.08, green: 0.07, blue: 0.12),
-                    Color(red: 0.12, green: 0.08, blue: 0.22)
+                    Color(red: 0.008, green: 0.008, blue: 0.012),
+                    Color(red: 0.02, green: 0.02, blue: 0.024),
+                    Color(red: 0.008, green: 0.008, blue: 0.012)
                 ],
                 startPoint: .top,
                 endPoint: .bottom

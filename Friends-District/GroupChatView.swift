@@ -292,7 +292,7 @@ struct GroupChatView: View {
                                             .foregroundStyle(.white)
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 12)
-                                            .background(senderDetails.isMe ? Color(red: 0.52, green: 0.22, blue: 0.95) : Color.white.opacity(0.08))
+                                            .background(senderDetails.isMe ? Color(red: 0.37, green: 0.42, blue: 0.82) : Color.white.opacity(0.06))
                                             .clipShape(RoundedRectangle(cornerRadius: 18))
                                     )
                                     .id(message.id)
@@ -315,7 +315,7 @@ struct GroupChatView: View {
 
             bottomInputBar
         }
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09).ignoresSafeArea())
+        .background(Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .navigationDestination(isPresented: $showGroupInfo) {
             GroupInfoView(room: room, memberCount: viewModel.memberCount)
@@ -511,7 +511,7 @@ struct GroupChatView: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 24)
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09))
+        .background(Color(red: 0.02, green: 0.02, blue: 0.024))
     }
 }
 

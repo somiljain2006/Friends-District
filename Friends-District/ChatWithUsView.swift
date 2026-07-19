@@ -305,9 +305,9 @@ struct ChatWithUsView: View {
     private var background: some View {
         LinearGradient(
             colors: [
-                Color(red: 0.05, green: 0.05, blue: 0.07),
-                Color(red: 0.07, green: 0.06, blue: 0.10),
-                Color(red: 0.10, green: 0.06, blue: 0.18)
+                Color(red: 0.008, green: 0.008, blue: 0.012),
+                Color(red: 0.02, green: 0.02, blue: 0.024),
+                Color(red: 0.008, green: 0.008, blue: 0.012)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -315,7 +315,7 @@ struct ChatWithUsView: View {
         .overlay(
             RadialGradient(
                 colors: [
-                    Color.purple.opacity(0.18),
+                    Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.12),
                     .clear
                 ],
                 center: .topTrailing,

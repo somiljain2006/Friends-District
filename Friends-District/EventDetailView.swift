@@ -36,7 +36,7 @@ struct EventDetailView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
@@ -73,7 +73,7 @@ struct EventDetailView: View {
                         VStack {
                             Spacer()
                             LinearGradient(
-                                colors: [Color.black.opacity(0.0), Color.black],
+                                colors: [Color(red: 0.008, green: 0.008, blue: 0.012).opacity(0.0), Color(red: 0.008, green: 0.008, blue: 0.012)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -93,7 +93,7 @@ struct EventDetailView: View {
                             if let min = item.priceMin, let max = item.priceMax {
                                 Text("$\(String(format: "%.2f", min)) - $\(String(format: "%.2f", max))")
                                     .font(.system(size: 20, weight: .semibold))
-                                    .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
+                                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
                             }
                         }
                         
@@ -191,7 +191,13 @@ struct EventDetailView: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 64)
-                            .background(Color(red: 0.52, green: 0.22, blue: 0.95))
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(red: 0.37, green: 0.42, blue: 0.82), Color(red: 0.49, green: 0.23, blue: 0.93)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .clipShape(Capsule())
                         }
                         .disabled(isBooking || bookingSuccess)
@@ -202,7 +208,7 @@ struct EventDetailView: View {
                 .padding(.bottom, 34)
                 .background(
                     LinearGradient(
-                        colors: [Color.black.opacity(0.0), Color.black.opacity(0.8), Color.black],
+                        colors: [Color(red: 0.008, green: 0.008, blue: 0.012).opacity(0.0), Color(red: 0.008, green: 0.008, blue: 0.012).opacity(0.8), Color(red: 0.008, green: 0.008, blue: 0.012)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -500,7 +506,7 @@ struct InfoCard: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill(Color.white.opacity(0.1)).frame(width: 44, height: 44)
-                Image(systemName: icon).font(.system(size: 18, weight: .semibold)).foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
+                Image(systemName: icon).font(.system(size: 18, weight: .semibold)).foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -558,7 +564,7 @@ struct BookingSheet: View {
                             Toggle("Include Time Range", isOn: $includeTime)
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(.white)
-                                .tint(Color(red: 0.52, green: 0.22, blue: 0.95))
+                                .tint(Color(red: 0.37, green: 0.42, blue: 0.82))
                             
                             if includeTime {
                                 VStack(spacing: 12) {
@@ -606,7 +612,7 @@ struct BookingSheet: View {
                                                 .frame(width: 24, height: 24)
                                             if isSelected {
                                                 Circle()
-                                                    .fill(Color(red: 0.52, green: 0.22, blue: 0.95))
+                                                    .fill(Color(red: 0.37, green: 0.42, blue: 0.82))
                                                     .frame(width: 16, height: 16)
                                             }
                                         }
@@ -636,7 +642,7 @@ struct BookingSheet: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background((roomId != nil && selectedMembers.isEmpty) ? Color.white.opacity(0.2) : Color(red: 0.52, green: 0.22, blue: 0.95))
+                        .background((roomId != nil && selectedMembers.isEmpty) ? Color.white.opacity(0.2) : Color(red: 0.37, green: 0.42, blue: 0.82))
                         .clipShape(Capsule())
                 }
                 .disabled(roomId != nil && selectedMembers.isEmpty)

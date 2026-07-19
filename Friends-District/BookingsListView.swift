@@ -79,7 +79,16 @@ struct BookingsListView: View {
                 }
             }
         }
-        .background(Color(red: 0.08, green: 0.08, blue: 0.09).ignoresSafeArea())
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.008, green: 0.008, blue: 0.012),
+                    Color(red: 0.02, green: 0.02, blue: 0.024)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            ).ignoresSafeArea()
+        )
         .navigationBarBackButtonHidden(true)
         .task {
             await fetchBookings()
@@ -127,10 +136,10 @@ struct BookingCard: View {
             HStack {
                 Text(booking.external_event_type.capitalized)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
+                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color(red: 0.52, green: 0.22, blue: 0.95).opacity(0.15))
+                    .background(Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.12))
                     .clipShape(Capsule())
                 
                 Spacer()
@@ -181,11 +190,18 @@ struct BookingCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Color.white.opacity(0.04))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
     }
 }

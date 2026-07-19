@@ -45,7 +45,7 @@ struct EditProfileView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.08, green: 0.08, blue: 0.09)
+            Color(red: 0.008, green: 0.008, blue: 0.012)
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
@@ -220,7 +220,7 @@ struct EditProfileView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
+                .fill(Color.white.opacity(0.04))
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Color.white.opacity(0.06), lineWidth: 1)

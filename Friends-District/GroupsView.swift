@@ -30,7 +30,7 @@ struct GroupsView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(red: 0.008, green: 0.008, blue: 0.012).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
@@ -79,10 +79,17 @@ struct GroupsView: View {
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(Color.white.opacity(0.05))
+                                    .fill(Color.white.opacity(0.04))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1
+                                            )
                                     )
                             )
                             .padding(.top, 8)
@@ -126,10 +133,17 @@ struct GroupsView: View {
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(Color.white.opacity(0.05))
+                                    .fill(Color.white.opacity(0.04))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1
+                                            )
                                     )
                             )
                             .padding(.top, 8)
@@ -149,7 +163,7 @@ struct GroupsView: View {
                     .tint(.white)
                     .foregroundStyle(.white)
                     .padding()
-                    .background(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .background(Color.white.opacity(0.08))
                     .cornerRadius(12)
             }
         }
@@ -224,7 +238,13 @@ struct GroupsView: View {
                 .frame(height: 40)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(Color(red: 0.52, green: 0.22, blue: 0.95))
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.37, green: 0.42, blue: 0.82), Color(red: 0.49, green: 0.23, blue: 0.93)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                 )
             }
             .buttonStyle(.plain)
@@ -452,7 +472,7 @@ struct PendingInviteRow: View {
                 
                 Text("Invitation pending")
                     .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(Color(red: 0.52, green: 0.22, blue: 0.95))
+                    .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
             }
             
             Spacer()
@@ -477,7 +497,7 @@ struct PendingInviteRow: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(10)
-                        .background(Color(red: 0.52, green: 0.22, blue: 0.95))
+                        .background(Color(red: 0.37, green: 0.42, blue: 0.82))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
