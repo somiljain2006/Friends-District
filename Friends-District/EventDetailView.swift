@@ -498,7 +498,7 @@ struct RoomMember: Codable, Identifiable, Hashable {
 }
 
 struct BookingSheet: View {
-    let roomId: String?
+    let roomId: Int?
     let members: [RoomMember]
     @Binding var selectedMembers: Set<String>
     
@@ -587,11 +587,14 @@ struct BookingSheet: View {
                                     .padding(.vertical, 8)
                                 }
                                 .buttonStyle(.plain)
+                            }
                         }
                     }
                 }
-                
-                Button {
+            }
+        }
+        
+        Button {
                     onConfirm()
                 } label: {
                     Text(roomId != nil ? "Confirm Booking (\(selectedMembers.count))" : "Confirm Booking")

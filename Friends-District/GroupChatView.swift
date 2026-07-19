@@ -111,7 +111,7 @@ class GroupChatViewModel: ObservableObject {
         }
 
         print("🔌 Connecting to WebSocket: \(url.absoluteString)")
-        let session = URLSession(configuration: .default)
+        _ = URLSession(configuration: .default)
         let task = URLSession.shared.webSocketTask(with: url)
         webSocketTask = task
         
