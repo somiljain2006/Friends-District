@@ -359,8 +359,8 @@ struct EventDetailView: View {
         }
     }
     
-    private func bookTicket(for phone: String) async -> Bool {
-        guard let url = URL(string: "https://district.monu14.me/api/v1/bookings") else { return false }
+    private func bookTicket(for phone: String) async -> (Bool, String?) {
+        guard let url = URL(string: "https://district.monu14.me/api/v1/bookings") else { return (false, "Invalid URL") }
         
         var payload: [String: Any] = [
             "username": storedUsername,
@@ -384,26 +384,32 @@ struct EventDetailView: View {
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 {
-                return true
+                return (true, nil)
+            } else {
+                if let errJSON = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errMsg = errJSON["error"] as? String {
+                    return (false, errMsg)
+                }
+                return (false, "Server returned an error.")
             }
         } catch {
             print("Failed to book: \(error)")
+            return (false, error.localizedDescription)
         }
-        return false
     }
     
     private func confirmSingleBooking() async {
         isBooking = true
         errorMessage = nil
-        let success = await bookTicket(for: storedUsername)
+        let (success, errorMsg) = await bookTicket(for: storedUsername)
         await MainActor.run {
             if success {
                 self.bookingSuccess = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.bookingSuccess = false }
             } else {
-                self.errorMessage = "Failed to book ticket."
+                self.errorMessage = errorMsg ?? "Failed to book ticket."
             }
             self.isBooking = false
         }
@@ -415,17 +421,26 @@ struct EventDetailView: View {
             errorMessage = nil
             
             var successCount = 0
+            var lastError: String? = nil
             for phone in selectedMembers {
-                let success = await bookTicket(for: phone)
-                if success { successCount += 1 }
+                let (success, errorMsg) = await bookTicket(for: phone)
+                if success { 
+                    successCount += 1 
+                } else {
+                    lastError = errorMsg
+                }
             }
             
             await MainActor.run {
-                if successCount > 0 {
+                if successCount == selectedMembers.count {
                     self.bookingSuccess = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.bookingSuccess = false }
+                } else if successCount > 0 {
+                    self.bookingSuccess = true
+                    self.errorMessage = "Partially booked. Some failed: \(lastError ?? "")"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.bookingSuccess = false }
                 } else {
-                    self.errorMessage = "Failed to book tickets."
+                    self.errorMessage = lastError ?? "Failed to book tickets."
                 }
                 self.isBooking = false
             }
