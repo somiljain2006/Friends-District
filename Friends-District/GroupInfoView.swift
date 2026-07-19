@@ -139,8 +139,9 @@ struct GroupInfoView: View {
             await fetchRoomMembers()
         }
         .alert("Invite Member", isPresented: $showInviteAlert) {
-            TextField("Enter phone number", text: $inviteeUsername)
-                .keyboardType(.phonePad)
+            TextField("Enter username", text: $inviteeUsername)
+                .keyboardType(.default)
+                .textInputAutocapitalization(.never)
             Button("Cancel", role: .cancel) { }
             Button("Invite") {
                 Task {
@@ -148,7 +149,7 @@ struct GroupInfoView: View {
                 }
             }
         } message: {
-            Text("Enter the phone number of the person you want to invite.")
+            Text("Enter the exact username of the person you want to invite.")
         }
         .alert("Invitation Status", isPresented: $showStatusAlert) {
             Button("OK", role: .cancel) { }
@@ -237,13 +238,13 @@ struct GroupInfoView: View {
     }
     
     private func inviteUser() async {
-        let trimmedPhone = inviteeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPhone.isEmpty else { return }
+        let trimmedUsername = inviteeUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty else { return }
 
         guard let url = URL(string: "https://district.monu14.me/api/v1/rooms/\(room.id)/invite") else { return }
         
         isInviting = true
-        let payload = InvitePayload(invitee_username: trimmedPhone, inviter_username: storedUsername)
+        let payload = InvitePayload(invitee_username: trimmedUsername, inviter_username: storedUsername)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
