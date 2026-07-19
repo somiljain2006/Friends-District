@@ -41,8 +41,27 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.08, green: 0.08, blue: 0.09)
-                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.008, green: 0.008, blue: 0.012),
+                        Color(red: 0.02, green: 0.02, blue: 0.024),
+                        Color(red: 0.008, green: 0.008, blue: 0.012)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                RadialGradient(
+                    colors: [
+                        Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.1),
+                        Color.clear
+                    ],
+                    center: .topTrailing,
+                    startRadius: 20,
+                    endRadius: 350
+                )
+                .ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
@@ -80,10 +99,17 @@ struct ProfileView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
+                                .fill(Color.white.opacity(0.04))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
                                 )
                         )
                         .padding(.horizontal, 18)
@@ -102,10 +128,17 @@ struct ProfileView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
+                                .fill(Color.white.opacity(0.04))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
                                 )
                         )
                         .padding(.horizontal, 18)
@@ -148,10 +181,17 @@ struct ProfileView: View {
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(red: 0.12, green: 0.12, blue: 0.13))
+                                .fill(Color.white.opacity(0.04))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
                                 )
                         )
                         .padding(.horizontal, 18)
@@ -237,30 +277,48 @@ struct ProfileView: View {
                     }
                     
                     Circle()
-                        .stroke(Color.white.opacity(0.15), lineWidth: 3)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.15), Color.white.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 3
+                        )
                         .frame(width: 76, height: 76)
                     
-                    // Dynamic Progress Circle
                     Circle()
                         .trim(from: 0, to: progress)
-                        .stroke(Color(red: 0.60, green: 0.55, blue: 0.90), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.37, green: 0.42, blue: 0.82),
+                                    Color(red: 0.49, green: 0.23, blue: 0.93)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                        )
                         .frame(width: 76, height: 76)
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut, value: progress)
+                        .shadow(color: Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.4), radius: 6)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(storedName.isEmpty ? "No Name Provided" : storedName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
+                        .tracking(-0.3)
                     
                     Text(storedUsername.isEmpty ? "No Phone Provided" : storedUsername)
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
                     
                     Text("\(stepsDone) / 4 steps done")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color(red: 0.60, green: 0.55, blue: 0.90))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.37, green: 0.42, blue: 0.82))
                         .padding(.top, 2)
                         .animation(.default, value: stepsDone)
                 }
@@ -285,8 +343,21 @@ struct ProfileView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .stroke(Color(red: 0.60, green: 0.55, blue: 0.90), lineWidth: 1.5)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.4),
+                                        Color(red: 0.49, green: 0.23, blue: 0.93).opacity(0.3)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                             .frame(width: 28, height: 28)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1.5)
+                            )
                         
                         Image(systemName: "arrow.right")
                             .font(.system(size: 12, weight: .semibold))
@@ -299,21 +370,24 @@ struct ProfileView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.18, green: 0.14, blue: 0.28),
-                            Color(red: 0.12, green: 0.10, blue: 0.18)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Color.white.opacity(0.04))
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.3),
+                                    Color.white.opacity(0.06),
+                                    Color.clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 )
         )
+        .shadow(color: Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.08), radius: 20, y: 8)
     }
     
     private func sectionTitle(_ title: String) -> some View {
@@ -345,7 +419,7 @@ struct ProfileView: View {
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(color.opacity(0.4))
+                .foregroundStyle(color == .red ? color.opacity(0.4) : Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.6))
         }
         .padding(.horizontal, 20)
         .frame(height: 64)

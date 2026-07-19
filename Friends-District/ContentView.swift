@@ -166,9 +166,9 @@ struct ContentView: View {
     private var background: some View {
         LinearGradient(
             colors: [
-                Color(red: 0.12, green: 0.09, blue: 0.22),
-                Color(red: 0.08, green: 0.08, blue: 0.12),
-                Color(red: 0.06, green: 0.06, blue: 0.08)
+                Color(red: 0.008, green: 0.008, blue: 0.012),
+                Color(red: 0.02, green: 0.02, blue: 0.024),
+                Color(red: 0.008, green: 0.008, blue: 0.012)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -176,12 +176,23 @@ struct ContentView: View {
         .overlay(
             RadialGradient(
                 colors: [
-                    Color.purple.opacity(0.28),
+                    Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.15),
                     Color.clear
                 ],
                 center: .topTrailing,
                 startRadius: 20,
                 endRadius: 420
+            )
+        )
+        .overlay(
+            RadialGradient(
+                colors: [
+                    Color(red: 0.49, green: 0.23, blue: 0.93).opacity(0.08),
+                    Color.clear
+                ],
+                center: .bottomLeading,
+                startRadius: 10,
+                endRadius: 350
             )
         )
     }
@@ -382,24 +393,33 @@ struct CategoryCard: View {
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.white.opacity(0.04))
                     .frame(height: 120)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.1), Color.white.opacity(0.03)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
                     )
+                    .shadow(color: Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.08), radius: 12, y: 6)
                 
                 Image(category.icon)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 82, height: 82)
-                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
             }
             
             Text(category.title)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
+                .tracking(-0.2)
                 .lineLimit(1)
                 .padding(.bottom, 2)
         }
@@ -468,14 +488,14 @@ struct SectionCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ZStack(alignment: .top) {
-                Color.white.opacity(0.05)
+            ZStack(alignment: .bottom) {
+                Color.white.opacity(0.04)
                     .frame(width: 240, height: 160)
                     .overlay(
                         AsyncImage(url: URL(string: item.imageUrl)) { phase in
                             switch phase {
                             case .empty:
-                                ProgressView().tint(.white)
+                                ProgressView().tint(Color(red: 0.37, green: 0.42, blue: 0.82))
                             case .success(let image):
                                 image.resizable().scaledToFill()
                             case .failure:
@@ -485,18 +505,41 @@ struct SectionCard: View {
                             }
                         }
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.08), Color.clear],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+                
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.6)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .frame(width: 240, height: 80)
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                )
             }
+            .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
+                    .tracking(-0.2)
                     .lineLimit(1)
                 
                 Text(item.description)
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
                     .lineLimit(2)
             }
             .frame(width: 240, alignment: .leading)
@@ -528,23 +571,33 @@ struct ProfileAvatar: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.white.opacity(0.82))
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.37, green: 0.42, blue: 0.82),
+                            Color(red: 0.49, green: 0.23, blue: 0.93)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .frame(width: 46, height: 46)
             
             Circle()
-                .fill(Color(red: 0.80, green: 0.80, blue: 0.88))
+                .fill(Color.white.opacity(0.9))
                 .frame(width: 18, height: 18)
                 .offset(y: -6)
             
             Capsule()
-                .fill(Color(red: 0.82, green: 0.82, blue: 0.90))
+                .fill(Color.white.opacity(0.85))
                 .frame(width: 28, height: 12)
                 .offset(y: 10)
         }
         .overlay(
             Circle()
-                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                .stroke(Color.white.opacity(0.2), lineWidth: 1.5)
         )
+        .shadow(color: Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.3), radius: 8)
     }
 }
 

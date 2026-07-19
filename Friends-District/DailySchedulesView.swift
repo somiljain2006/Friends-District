@@ -8,55 +8,136 @@ struct DailySchedulesView: View {
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     
+    private let bgDeep = Color(red: 0.008, green: 0.008, blue: 0.012)
+    private let bgBase = Color(red: 0.02, green: 0.02, blue: 0.024)
+    private let surface = Color.white.opacity(0.05)
+    private let accent = Color(red: 0.37, green: 0.42, blue: 0.82)
+    private let accentGlow = Color(red: 0.37, green: 0.42, blue: 0.82).opacity(0.2)
+    
     var body: some View {
         ZStack {
-            Color(red: 0.12, green: 0.12, blue: 0.14).ignoresSafeArea()
+            LinearGradient(
+                colors: [bgDeep, bgBase, bgDeep],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            RadialGradient(
+                colors: [accent.opacity(0.12), Color.clear],
+                center: .topTrailing,
+                startRadius: 20,
+                endRadius: 400
+            )
+            .ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 0) {
-                // Custom Header
-                HStack {
+                HStack(spacing: 16) {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.white)
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.07))
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    Circle().stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                )
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
                     }
                     
-                    Text("Daily Schedules")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.leading, 12)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Daily Schedules")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundStyle(.white)
+                            .tracking(-0.5)
+                        
+                        Text("\(bookings.count) upcoming")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                    }
                     
                     Spacer()
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
-                .padding(.bottom, 24)
+                .padding(.bottom, 28)
                 
                 if isLoading {
                     Spacer()
-                    ProgressView().tint(.white).frame(maxWidth: .infinity)
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .tint(accent)
+                            .scaleEffect(1.2)
+                        Text("Loading schedules...")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                    }
+                    .frame(maxWidth: .infinity)
                     Spacer()
                 } else if let error = errorMessage {
                     Spacer()
-                    Text(error).foregroundStyle(.red).frame(maxWidth: .infinity)
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.red.opacity(0.7))
+                        Text(error)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.red.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
                     Spacer()
                 } else if bookings.isEmpty {
                     Spacer()
-                    Text("No upcoming schedules.")
-                        .foregroundStyle(.white.opacity(0.6))
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 16) {
+                        Image(systemName: "calendar.badge.exclamationmark")
+                            .font(.system(size: 48))
+                            .foregroundStyle(accent.opacity(0.5))
+                        Text("No upcoming schedules")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.7))
+                        Text("Book an event to see it here.")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                    }
+                    .frame(maxWidth: .infinity)
                     Spacer()
                 } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            ForEach(bookings) { booking in
-                                ScheduleCard(booking: booking, currentUsername: storedUsername)
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            ForEach(Array(bookings.enumerated()), id: \.element.id) { index, booking in
+                                HStack(alignment: .top, spacing: 16) {
+                                    VStack(spacing: 0) {
+                                        Circle()
+                                            .fill(accentColorFor(booking.external_event_type))
+                                            .frame(width: 10, height: 10)
+                                            .shadow(color: accentColorFor(booking.external_event_type).opacity(0.5), radius: 4)
+                                        
+                                        if index < bookings.count - 1 {
+                                            Rectangle()
+                                                .fill(Color.white.opacity(0.08))
+                                                .frame(width: 1.5)
+                                                .frame(maxHeight: .infinity)
+                                        }
+                                    }
+                                    .frame(width: 10)
+                                    .padding(.top, 6)
+                                    
+                                    PremiumScheduleCard(
+                                        booking: booking,
+                                        currentUsername: storedUsername,
+                                        accentColor: accentColorFor(booking.external_event_type)
+                                    )
+                                    .padding(.bottom, 16)
+                                }
                             }
                         }
                         .padding(.horizontal, 24)
-                        .padding(.top, 8)
+                        .padding(.top, 4)
                         .padding(.bottom, 32)
                     }
                 }
@@ -65,6 +146,19 @@ struct DailySchedulesView: View {
         .navigationBarBackButtonHidden()
         .task {
             await fetchBookings()
+        }
+    }
+    
+    private func accentColorFor(_ type: String) -> Color {
+        switch type.lowercased() {
+        case "dining":
+            return Color(red: 0.92, green: 0.35, blue: 0.05)
+        case "movie":
+            return Color(red: 0.15, green: 0.39, blue: 0.92)
+        case "concert":
+            return Color(red: 0.49, green: 0.23, blue: 0.93)
+        default:
+            return accent
         }
     }
     
@@ -94,76 +188,122 @@ struct DailySchedulesView: View {
     }
 }
 
-struct ScheduleCard: View {
+struct PremiumScheduleCard: View {
     let booking: BookingModel
     let currentUsername: String
+    let accentColor: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(booking.external_event_type.capitalized)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.purple)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.purple.opacity(0.15))
-                    .clipShape(Capsule())
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(accentColor)
+                        .frame(width: 8, height: 8)
+                    Text(booking.external_event_type.capitalized)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(accentColor)
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(accentColor.opacity(0.12))
+                .clipShape(Capsule())
                 
                 Spacer()
                 
                 if let status = booking.status {
                     Text(status)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(status == "CONFIRMED" ? .green : .orange)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(status == "CONFIRMED" ? Color(red: 0.2, green: 0.83, blue: 0.6) : .orange)
+                        .tracking(0.5)
+                        .textCase(.uppercase)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            (status == "CONFIRMED" ? Color(red: 0.2, green: 0.83, blue: 0.6) : .orange).opacity(0.1)
+                        )
+                        .clipShape(Capsule())
                 }
             }
             
-            Text("Event ID: \(booking.external_event_id)")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(.white)
+            Text("Event: \(booking.external_event_id)")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94))
                 .lineLimit(1)
+                .tracking(-0.3)
             
-            HStack(spacing: 16) {
+            HStack(spacing: 20) {
                 if let date = booking.booking_date {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar")
-                            .foregroundStyle(.white.opacity(0.6))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(accentColor.opacity(0.8))
                         Text(date)
-                            .foregroundStyle(.white.opacity(0.9))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94).opacity(0.85))
                     }
                 }
                 
                 if let start = booking.start_time, let end = booking.end_time {
                     HStack(spacing: 6) {
                         Image(systemName: "clock")
-                            .foregroundStyle(.white.opacity(0.6))
-                        Text("\(start) - \(end)")
-                            .foregroundStyle(.white.opacity(0.9))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(accentColor.opacity(0.8))
+                        Text("\(start) – \(end)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(red: 0.93, green: 0.93, blue: 0.94).opacity(0.85))
                     }
                 }
             }
-            .font(.system(size: 14, weight: .medium))
             
-            Divider().background(Color.white.opacity(0.1)).padding(.vertical, 4)
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(height: 1)
+                .padding(.vertical, 2)
             
             HStack {
-                Text(isForMe ? "For You" : "For Friend")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
+                HStack(spacing: 6) {
+                    Image(systemName: isForMe ? "person.fill" : "person.2.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                    Text(isForMe ? "For You" : "For Friend")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color(red: 0.54, green: 0.56, blue: 0.6))
+                }
                 
                 Spacer()
                 
                 Text("Qty: \(booking.quantity)")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.7))
             }
         }
-        .padding(16)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [accentColor.opacity(0.25), Color.white.opacity(0.06), Color.clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .overlay(
+            HStack {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(accentColor)
+                    .frame(width: 3)
+                    .padding(.vertical, 12)
+                Spacer()
+            }
         )
     }
     
@@ -175,7 +315,6 @@ struct ScheduleCard: View {
     }
 }
 
-// Ensure BookingModel matches the API response
 struct BookingModel: Codable, Identifiable {
     let id: Int
     let user_id: Int
